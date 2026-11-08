@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-roman: 'Cinzel', serif;
+    --font-ui: 'Plus Jakarta Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    
+    /* Palette Rosso Pompeiano, Oro e Argento */
+    --color-pompeian-deep: #420d11;      /* Fondo Rosso Pompeiano profondo */
+    --color-pompeian-card: #541117;      /* Riquadri / Box rosso pompeiano */
+    --color-pompeian-header: #6e171f;    /* Intestazioni e barre pompeiane */
+    --color-pompeian-inset: #2b080b;     /* Incastri interni e tabelle dense */
+    --color-gold-bright: #d4af37;        /* Oro lucido imperiale */
+    --color-gold-warm: #facc15;          /* Oro dorato caldo */
+    --color-silver-bright: #e2e8f0;      /* Argento cesellato */
+    --color-silver-soft: #cbd5e1;        /* Argento satinato */
+    --color-silver-muted: #94a3b8;       /* Argento patinato / fumo */
+  }
+
+  body {
+    background-color: #2e080b;
+    color: var(--color-silver-bright);
+    background-image: 
+      radial-gradient(circle at 50% 0%, rgba(139, 26, 36, 0.4) 0%, transparent 70%),
+      radial-gradient(circle at 0% 100%, rgba(66, 13, 17, 0.6) 0%, transparent 60%);
+  }
+}
+
+.font-roman {
+  font-family: var(--font-roman);
+}
+
+.font-ui {
+  font-family: var(--font-ui);
+}
+
+.font-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 90s Managerial Retro Bevels in Rosso Pompeiano, Oro e Argento */
+.retro-box {
+  background: linear-gradient(180deg, #4d1015 0%, #3d0c10 100%);
+  border-top: 1px solid #85222b;
+  border-left: 1px solid #85222b;
+  border-right: 1px solid #240507;
+  border-bottom: 1px solid #240507;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 1px 1px 0 rgba(212, 175, 55, 0.15);
+}
+
+.retro-panel-header {
+  background: linear-gradient(180deg, #6b1720 0%, #521118 100%);
+  border-bottom: 1px solid #8a242e;
+  border-top: 1px solid #9c2b37;
+}
+
+.retro-inset {
+  background: #280709;
+  border-top: 1px solid #190305;
+  border-left: 1px solid #190305;
+  border-right: 1px solid #57141a;
+  border-bottom: 1px solid #57141a;
+}
+
+.retro-button-active {
+  background: linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%);
+  border-top: 1px solid #f87171;
+  border-left: 1px solid #f87171;
+  border-right: 1px solid #450a0a;
+  border-bottom: 1px solid #450a0a;
+}
+
+/* Pergamena / Oro e Argento decorative accents */
+.pompeian-gold-border {
+  border-color: #d4af37;
+}
+
+.pompeian-silver-text {
+  color: #e2e8f0;
+}
+
+/* Scrollbars for dense 90s tables */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #240507;
+}
+::-webkit-scrollbar-thumb {
+  background: #6e171f;
+  border: 1px solid #8f232c;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8f232c;
+}
