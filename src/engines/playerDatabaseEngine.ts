@@ -231,13 +231,13 @@ export function createDeterministicPlayer(
     ? `player_fa_${slotIndex}`
     : `player_${clubId}_${slotIndex + 1}`;
 
-  // Sesterzi valuation
+  // Sesterzi valuation (calibrated for club budgets 1M - 3.5M HS)
   const marketVal = isFreeAgent
     ? 0
-    : Math.round(overall * overall * 240 * (1 + (potential - overall) * 0.05));
+    : Math.round(overall * overall * 75 * (1 + (potential - overall) * 0.03));
   const weeklyWage = isFreeAgent
-    ? Math.round(overall * 180)
-    : Math.round(overall * 290);
+    ? Math.round(overall * 80)
+    : Math.round(overall * 120);
 
   const contractYears = 1 + Math.floor(seedRng() * 3);
   const contractExpiry = isFreeAgent ? currentYearBC : currentYearBC + contractYears;

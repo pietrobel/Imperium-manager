@@ -170,49 +170,58 @@ export const Harpastum2DSimulator: React.FC<Harpastum2DSimulatorProps> = ({
   }, [userMatch]);
 
 
-  // Simulation timer tick (advances minute 0 to 90)
+  // Simulation timer tick (50-minute Harpastum canonical match duration)
+  // Diviso in due tempi da 25' d'arena (come nell'Harpastum antico e moderno)
   useEffect(() => {
     if (!isPlaying) return;
 
     const interval = setInterval(() => {
       setMatchMinute(prev => {
-        if (prev >= 90) {
+        if (prev >= 50) {
           setIsPlaying(false);
+          audio.playWhistle();
+          setLiveCommentary("Triplice squillo di bucina! L'agone d'Harpastum è giunto al termine dei 50 minuti!");
           if (onSimulationFinished) onSimulationFinished();
-          return 90;
+          return 50;
         }
 
         const nextMin = prev + 1;
 
         // Harpastum Rule: Rotatio Libera cum Reitu (Sostituzioni libere e Rientro per contusione)
-        if (nextMin === 28 && homeBench.length > 0) {
+        if (nextMin === 16 && homeBench.length > 0) {
           const outAthlete = athletesRef.current.find(a => a.team === 'HOME' && a.category === 'LUCTATOR');
           const sub = homeBench[0];
           if (outAthlete && sub) {
             subHistoryRef.current.push({
               outAthlete: { ...outAthlete },
               subAthlete: sub,
-              min: 28,
+              min: 16,
               reentered: false
             });
             outAthlete.name = sub.cognome;
             outAthlete.id = sub.id;
             audio.playWhistle();
-            setMetaBanner(`ROTATIO D'HARPASTUM! Minuto 28': ${sub.cognome} rileva ${subHistoryRef.current[0].outAthlete.name} per contusione (ammesso rientro successivo).`);
-            setLiveCommentary(`[28'] 🔄 Sostituzione d'emergenza: ${sub.cognome} entra nei Luctatores. L'atleta medicato potrà rientrare!`);
+            setMetaBanner(`ROTATIO D'HARPASTUM! 16': ${sub.cognome} rileva ${subHistoryRef.current[0].outAthlete.name} per contusione (ammesso rientro successivo).`);
+            setLiveCommentary(`[16'] 🔄 Sostituzione per trauma: entra ${sub.cognome}. L'atleta medicato potrà rientrare!`);
             setTimeout(() => setMetaBanner(null), 3000);
           }
-        } else if (nextMin === 52 && awayBench.length > 0) {
+        } else if (nextMin === 25) {
+          // Half-time marker in the 50-minute match
+          audio.playWhistle();
+          setMetaBanner(`INTERVALLO (25'): I tribuni invertono i lati della sabbia!`);
+          setLiveCommentary(`[25'] ⏸️ Metà agone completata: 25 minuti di scontro fisico feroce nella sabbia!`);
+          setTimeout(() => setMetaBanner(null), 2500);
+        } else if (nextMin === 32 && awayBench.length > 0) {
           const outAway = athletesRef.current.find(a => a.team === 'AWAY' && a.category === 'TRACTOR');
           const subAway = awayBench[0];
           if (outAway && subAway) {
             outAway.name = subAway.cognome;
             outAway.id = subAway.id;
-            setMetaBanner(`ROTATIO D'HARPASTUM! Minuto 52': ${awayClub.nome} ruota i Tractores con ${subAway.cognome}.`);
-            setLiveCommentary(`[52'] 🔄 Rotazione libera avversaria: entra ${subAway.cognome} per sfiancamento.`);
+            setMetaBanner(`ROTATIO D'HARPASTUM! 32': ${awayClub.nome} ruota i Tractores con ${subAway.cognome}.`);
+            setLiveCommentary(`[32'] 🔄 Rotazione libera avversaria: entra ${subAway.cognome} per sfiancamento.`);
             setTimeout(() => setMetaBanner(null), 2500);
           }
-        } else if (nextMin === 68 && subHistoryRef.current.length > 0 && !subHistoryRef.current[0].reentered) {
+        } else if (nextMin === 41 && subHistoryRef.current.length > 0 && !subHistoryRef.current[0].reentered) {
           // Re-entry of the recovered athlete!
           const record = subHistoryRef.current[0];
           const targetAthlete = athletesRef.current.find(a => a.team === 'HOME' && a.category === 'TRACTOR');
@@ -221,43 +230,50 @@ export const Harpastum2DSimulator: React.FC<Harpastum2DSimulatorProps> = ({
             targetAthlete.name = record.outAthlete.name;
             targetAthlete.id = record.outAthlete.id;
             audio.playWhistle();
-            setMetaBanner(`⭐ RIENTRO IN ARENA! Minuto 68': ${record.outAthlete.name} torna in campo dopo le cure mediche!`);
-            setLiveCommentary(`[68'] 🔁 Rientro in Arena: ${record.outAthlete.name} è ristabilito e si getta di nuovo nella mischia!`);
+            setMetaBanner(`⭐ RIENTRO IN ARENA! 41': ${record.outAthlete.name} torna in campo dopo le cure del cerusico!`);
+            setLiveCommentary(`[41'] 🔁 Rientro in Arena: ${record.outAthlete.name} è ristabilito e si getta di nuovo nella mischia!`);
             setTimeout(() => setMetaBanner(null), 3500);
           }
         }
 
-        // Check if an event occurred at this minute
-        const eventsThisMinute = userMatch.result.eventi.filter(e => e.minuto === nextMin);
+        // Check if a match event occurred around this minute (scaled to 50' Harpastum clock)
+        const eventsThisMinute = userMatch.result.eventi.filter(e => {
+          const scaledMin = Math.max(1, Math.min(50, Math.round((e.minuto / 90) * 50)));
+          return scaledMin === nextMin;
+        });
+
         if (eventsThisMinute.length > 0) {
           const ev = eventsThisMinute[0];
           setLiveCommentary(`[Minuto ${nextMin}'] ${ev.dettaglio || `${ev.giocatoreNome} protagonista dell'azione!`}`);
 
           if (ev.tipo === 'META' || ev.tipo === 'GOL') {
             audio.playGoal();
+            // Trigger visual flash and celebration
+            metaFlashRef.current = 1.0;
+
             if (ev.squadra === 'CASA') {
               setCurrentScoreHome(h => h + 1);
-              setMetaBanner(`META HARPASTICA! ${homeClub.nome} varca la linea di fondo!`);
+              setMetaBanner(`⭐⭐ META D'HARPASTUM! PUNCTUM CONSEGUITO DA ${homeClub.nome.toUpperCase()}! ⭐⭐`);
             } else {
               setCurrentScoreAway(a => a + 1);
-              setMetaBanner(`META HARPASTICA! ${awayClub.nome} sfonda la difesa!`);
+              setMetaBanner(`⭐⭐ META D'HARPASTUM! PUNCTUM CONSEGUITO DA ${awayClub.nome.toUpperCase()}! ⭐⭐`);
             }
-            setTimeout(() => setMetaBanner(null), 3500);
+            setTimeout(() => setMetaBanner(null), 4000);
           } else if (ev.tipo === 'PLACCAGGIO') {
-            setMetaBanner(`PLACCAGGIO NELLA SABBIA! Arrestata la corsa!`);
+            setMetaBanner(`💥 PLACCAGGIO ALLA VITA NELLA SABBIA!`);
             setTimeout(() => setMetaBanner(null), 2000);
           }
-        } else if (nextMin !== 28 && nextMin !== 52 && nextMin !== 68) {
-          // Dynamic procedural sensory commentary
-          if (nextMin % 8 === 0) {
+        } else if (nextMin !== 16 && nextMin !== 25 && nextMin !== 32 && nextMin !== 41) {
+          // Dynamic procedural sensory commentary for 50-minute match
+          if (nextMin % 5 === 0) {
             const ambientPhrases = [
               'Le due fazioni da 12 atleti lottano corpo a corpo lungo la mesê grammê!',
-              'Lancio teso a due mani della palla di cuoio verso i 3 cursori d\'assalto!',
-              'I 4 lottatori centrali sbarrano la corsa con un muro corporale spettacolare!',
-              'Presa acrobatica al volo nella sabbia sollevata dagli schieramenti!',
-              'Scatto bruciante sul corridoio di fondo, i lottatori accorrono in aiuto!'
+              'Lancio teso a due mani verso i cursori: contesa acrobatica nella polvere!',
+              'I 4 lottatori centrali abbattono il portatore con un doppio placcaggio alla vita!',
+              'Scatto bruciante sul corridoio di meta, i difensori si tuffano nella sabbia!',
+              'Mischia furibonda a terra per il possesso della piccola sfera di cuoio!'
             ];
-            setLiveCommentary(`[${nextMin}'] ${ambientPhrases[(nextMin / 8) % ambientPhrases.length]}`);
+            setLiveCommentary(`[${nextMin}'] ${ambientPhrases[(nextMin / 5) % ambientPhrases.length]}`);
           }
         }
 
@@ -268,7 +284,11 @@ export const Harpastum2DSimulator: React.FC<Harpastum2DSimulatorProps> = ({
     return () => clearInterval(interval);
   }, [isPlaying, playbackSpeed, userMatch]);
 
-  // Sensible Soccer retro canvas render loop (2D top-down retro sprites & physics)
+  // Visual effects refs for 60fps canvas animation
+  const metaFlashRef = useRef<number>(0);
+  const impactEffectsRef = useRef<{ x: number; y: number; life: number; maxLife: number; text?: string; color: string }[]>([]);
+
+  // Top-down arena canvas render loop (continuous 24-player motion & visible Harpastum clashes)
   useEffect(() => {
     let animId: number;
 
@@ -280,39 +300,45 @@ export const Harpastum2DSimulator: React.FC<Harpastum2DSimulatorProps> = ({
 
       const w = canvas.width;
       const h = canvas.height;
+      const now = Date.now();
+
+      // Fade meta flash
+      if (metaFlashRef.current > 0) {
+        metaFlashRef.current = Math.max(0, metaFlashRef.current - 0.025);
+      }
 
       // 1. Draw Sand Arena (Harpastum Pitch)
-      ctx.fillStyle = '#8b5a2b'; // Pompeian sand brown
+      ctx.fillStyle = '#8f5c2c'; // Pompeian arena sand
       ctx.fillRect(0, 0, w, h);
 
-      // Sand textured speckles (Sensible Soccer retro grain)
+      // Sand textured grain
       ctx.fillStyle = '#7a4e25';
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 50; i++) {
         const sx = ((i * 73) % w);
         const sy = ((i * 47) % h);
         ctx.fillRect(sx, sy, 3, 3);
       }
 
-      // Outer Arena Wood Fence Border
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = '#3d1808';
+      // Outer Arena Wood Fence Border (heavy roman timbers)
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#381607';
       ctx.strokeRect(10, 10, w - 20, h - 20);
 
-      // 2. Pitch Markings
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#fef08a';
+      // 2. Pitch Markings: Castra Opposita & Castra Propria
+      ctx.lineWidth = 2.5;
 
       // Meta Line Top (Castra Opposita - Opponent End Line)
+      ctx.strokeStyle = metaFlashRef.current > 0 ? '#ffffff' : '#fef08a';
       ctx.beginPath();
-      ctx.setLineDash([6, 4]);
-      ctx.moveTo(20, 24);
-      ctx.lineTo(w - 20, 24);
+      ctx.setLineDash([8, 4]);
+      ctx.moveTo(18, 28);
+      ctx.lineTo(w - 18, 28);
       ctx.stroke();
 
       // Meta Line Bottom (Castra Propria - Friendly End Line)
       ctx.beginPath();
-      ctx.moveTo(20, h - 24);
-      ctx.lineTo(w - 20, h - 24);
+      ctx.moveTo(18, h - 28);
+      ctx.lineTo(w - 18, h - 28);
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -320,106 +346,153 @@ export const Harpastum2DSimulator: React.FC<Harpastum2DSimulatorProps> = ({
       ctx.beginPath();
       ctx.strokeStyle = '#d4af37';
       ctx.lineWidth = 3;
-      ctx.moveTo(10, h / 2);
-      ctx.lineTo(w - 10, h / 2);
+      ctx.moveTo(12, h / 2);
+      ctx.lineTo(w - 12, h / 2);
       ctx.stroke();
 
       // Center Circle
       ctx.beginPath();
-      ctx.arc(w / 2, h / 2, 36, 0, Math.PI * 2);
+      ctx.arc(w / 2, h / 2, 42, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Meta Zone markers on wood
-      ctx.fillStyle = 'rgba(0,0,0,0.4)';
-      ctx.font = '10px Cinzel, serif';
+      // Meta Zone Roman lettering on sand
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.font = 'bold 9px Cinzel, serif';
       ctx.textAlign = 'center';
-      ctx.fillText('META AVVERSARIA (CASTRA CAPTA)', w / 2, 18);
-      ctx.fillText('LINEA DIFENSIVA AMICA', w / 2, h - 10);
+      ctx.fillText('CASTRA OPPOSITA · LINEA DI META (AVVERSARIA)', w / 2, 22);
+      ctx.fillText('CASTRA PROPRIA · LINEA DI FONDO DIFESA', w / 2, h - 14);
 
-      // 3. Update & Draw Athletes (Retro sprites with heads & directional bodies)
+      // 3. Update & Draw All 24 Athletes (Continuous organic movement & wrestling clashes)
       const athletes = athletesRef.current;
       const ball = ballRef.current;
-
-      // Determine which team holds ball
       const ballHolder = athletes.find(a => a.id === ball.holderId);
-      const isHomeAttacking = ball.carrierTeam === 'HOME';
 
-      athletes.forEach(a => {
-        // AI Movement: Move towards target or ball
+      athletes.forEach((a, idx) => {
+        // Continuous footwork & running animation for EVERY player
+        const runCycle = Math.sin((now / 110) + idx * 0.85);
+        const wanderX = Math.cos((now / 350) + idx * 1.2) * 0.5;
+        const wanderY = Math.sin((now / 400) + idx * 1.5) * 0.4;
+
         if (a.tackledCooldown > 0) {
           a.tackledCooldown--;
+          // Laying down on sand struggling
         } else {
-          // Dynamic wander & battle logic
           if (a.hasBall) {
-            // Carry towards opponent meta
-            const targetY = a.team === 'HOME' ? 18 : 82;
-            a.y += (targetY - a.y) * 0.04;
-            a.x += (Math.sin(Date.now() / 300) * 0.6);
+            // Ball carrier sprints towards opponent meta with body feints
+            const targetY = a.team === 'HOME' ? 22 : 78;
+            a.y += (targetY - a.y) * 0.045;
+            a.x += Math.sin(now / 220) * 0.9;
           } else {
-            // Support or tackle
+            // Defending or supporting: continuous active tracking
             const distToBall = Math.hypot(a.x - ball.x, a.y - ball.y);
-            if (distToBall < 18 && a.team !== ball.carrierTeam) {
-              // Rush to tackle
-              a.x += (ball.x - a.x) * 0.05;
-              a.y += (ball.y - a.y) * 0.05;
+            const isOpponent = a.team !== ball.carrierTeam;
 
-              // Check tackle resolution
-              if (distToBall < 5 && Math.random() < 0.08) {
-                if (ballHolder) {
+            if (isOpponent && distToBall < 25) {
+              // Charge towards ball carrier to deliver a brutal tackle
+              a.x += (ball.x - a.x) * 0.055 + wanderX * 0.3;
+              a.y += (ball.y - a.y) * 0.055 + wanderY * 0.3;
+
+              // Physical Tackle Collision Resolution
+              if (distToBall < 6.5) {
+                // Scontro corpo a corpo! Spawns sand dust and grapple effect
+                impactEffectsRef.current.push({
+                  x: (a.x / 100) * w,
+                  y: (a.y / 100) * h,
+                  life: 20,
+                  maxLife: 20,
+                  text: '💥 PLACCAGGIO!',
+                  color: '#fef08a'
+                });
+
+                if (ballHolder && Math.random() < 0.12) {
+                  // Ball stripped / carrier brought down to the sand!
                   ballHolder.hasBall = false;
-                  ballHolder.tackledCooldown = 25;
+                  ballHolder.tackledCooldown = 35;
                   a.hasBall = true;
                   ball.holderId = a.id;
                   ball.carrierTeam = a.team;
                 }
               }
             } else {
-              // Return towards tactical zone
-              a.x += (a.targetX - a.x) * 0.02;
-              a.y += (a.targetY - a.y) * 0.02;
+              // Continuous active repositioning in formation zone
+              a.x += (a.targetX - a.x) * 0.03 + wanderX;
+              a.y += (a.targetY - a.y) * 0.03 + wanderY;
             }
           }
         }
 
-        // Keep inside arena bounds
+        // Constrain strictly inside arena fencing
         a.x = Math.max(12, Math.min(88, a.x));
-        a.y = Math.max(15, Math.min(85, a.y));
+        a.y = Math.max(16, Math.min(84, a.y));
 
         const px = (a.x / 100) * w;
-        const py = (a.y / 100) * h;
+        const py = (a.y / 100) * h + (a.tackledCooldown > 0 ? 0 : runCycle * 1.5);
 
-        // Sensible Soccer Drop Shadow
+        // A. Retro Drop Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath();
-        ctx.ellipse(px + 2, py + 4, 6, 3, 0, 0, Math.PI * 2);
+        if (a.tackledCooldown > 0) {
+          // Flat elongated shadow on sand
+          ctx.ellipse(px + 2, py + 3, 9, 4, 0, 0, Math.PI * 2);
+        } else {
+          ctx.ellipse(px + 2, py + 5, 6, 3, 0, 0, Math.PI * 2);
+        }
         ctx.fill();
 
-        // Athlete Body (Tunic / Armor)
-        ctx.fillStyle = a.team === 'HOME' ? '#b91c1c' : '#1e3a8a';
-        ctx.beginPath();
-        ctx.arc(px, py, 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = a.team === 'HOME' ? '#d4af37' : '#e2e8f0';
-        ctx.stroke();
+        // B. Athlete Body (Tunic / Armor in social colors)
+        if (a.tackledCooldown > 0) {
+          // Down on the sand (turned horizontal sprite)
+          ctx.fillStyle = a.team === 'HOME' ? '#7f1d1d' : '#1e3a8a';
+          ctx.beginPath();
+          ctx.ellipse(px, py, 9, 5, Math.PI / 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#d4af37';
+          ctx.lineWidth = 1;
+          ctx.stroke();
 
-        // Head (Skin tone retro dot)
-        ctx.fillStyle = '#fbcfe8';
-        ctx.beginPath();
-        ctx.arc(px, py - 4, 3, 0, Math.PI * 2);
-        ctx.fill();
+          // Small dust puff around fallen athlete
+          ctx.fillStyle = 'rgba(180, 130, 80, 0.5)';
+          ctx.beginPath();
+          ctx.arc(px - 4, py + 2, 4, 0, Math.PI * 2);
+          ctx.arc(px + 5, py - 2, 5, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          // Upright running athlete with directional shoulder width
+          ctx.fillStyle = a.team === 'HOME' ? (homeClub.colori?.primary || '#b91c1c') : (awayClub.colori?.primary || '#1e3a8a');
+          ctx.beginPath();
+          ctx.arc(px, py, 6.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = a.team === 'HOME' ? '#fef08a' : '#e2e8f0';
+          ctx.stroke();
 
-        // Athlete Name Tag (Sensible Soccer minimal retro label)
-        ctx.fillStyle = a.team === 'HOME' ? '#fef08a' : '#cbd5e1';
-        ctx.font = '8px monospace';
+          // Head (Retro pinkish skin tone dot)
+          ctx.fillStyle = '#fbcfe8';
+          ctx.beginPath();
+          ctx.arc(px, py - 4.5, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // If carrying ball, render golden halo / possession aura
+          if (a.hasBall) {
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(px, py, 9.5, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+
+        // C. Minimal Retro Name Label
+        ctx.fillStyle = a.team === 'HOME' ? '#fef08a' : '#ffffff';
+        ctx.font = 'bold 8px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(a.name.slice(0, 7), px, py + 12);
+        ctx.fillText(a.name.slice(0, 7), px, py + 13);
       });
 
       // 4. Update & Draw Harpastum Ball (Small hard leather sphere)
       if (ballHolder) {
         ball.x = ballHolder.x;
-        ball.y = ballHolder.y + (ballHolder.team === 'HOME' ? -3 : 3);
+        ball.y = ballHolder.y + (ballHolder.team === 'HOME' ? -3.5 : 3.5);
       }
 
       const bx = (ball.x / 100) * w;
@@ -428,24 +501,78 @@ export const Harpastum2DSimulator: React.FC<Harpastum2DSimulatorProps> = ({
       // Ball Shadow
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.beginPath();
-      ctx.arc(bx + 1.5, by + 2, 2.5, 0, Math.PI * 2);
+      ctx.arc(bx + 1.5, by + 2.5, 3, 0, Math.PI * 2);
       ctx.fill();
 
-      // Ball Body (Dark leather stitched)
+      // Ball Body (Hard stitched leather sphere)
       ctx.fillStyle = '#fef08a';
       ctx.beginPath();
-      ctx.arc(bx, by, 3.5, 0, Math.PI * 2);
+      ctx.arc(bx, by, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#78350f';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
+
+      // 5. Render Physical Impact Clouds & Clash Texts
+      const impacts = impactEffectsRef.current;
+      for (let i = impacts.length - 1; i >= 0; i--) {
+        const imp = impacts[i];
+        imp.life--;
+
+        const progress = 1 - (imp.life / imp.maxLife);
+        const radius = 5 + progress * 14;
+        const alpha = Math.max(0, imp.life / imp.maxLife);
+
+        // Expanding Sand Dust Cloud
+        ctx.fillStyle = `rgba(210, 165, 110, ${alpha * 0.6})`;
+        ctx.beginPath();
+        ctx.arc(imp.x, imp.y, radius, 0, Math.PI * 2);
+        ctx.arc(imp.x - radius * 0.4, imp.y + 2, radius * 0.7, 0, Math.PI * 2);
+        ctx.arc(imp.x + radius * 0.4, imp.y - 2, radius * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Text banner above clash
+        if (imp.text && imp.life > 6) {
+          ctx.fillStyle = imp.color;
+          ctx.font = 'bold 9px Cinzel, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(imp.text, imp.x, imp.y - 12 - (progress * 6));
+        }
+
+        if (imp.life <= 0) {
+          impacts.splice(i, 1);
+        }
+      }
+
+      // 6. Meta / Punctum Glorious Flash & Screen Celebration
+      if (metaFlashRef.current > 0) {
+        // Brilliant Gold Screen Flash
+        ctx.fillStyle = `rgba(254, 240, 138, ${metaFlashRef.current * 0.45})`;
+        ctx.fillRect(0, 0, w, h);
+
+        // Giant On-Canvas Meta Triumph Banner
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(20, h / 2 - 28, w - 40, 56);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#d4af37';
+        ctx.strokeRect(20, h / 2 - 28, w - 40, 56);
+
+        ctx.fillStyle = '#fef08a';
+        ctx.font = 'bold 15px Cinzel, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('⭐⭐ META CONSEGUITA! PUNCTUM! ⭐⭐', w / 2, h / 2 - 4);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('LA PALLA HA VARCATO LA LINEA DELLE CASTRA!', w / 2, h / 2 + 16);
+      }
 
       animId = requestAnimationFrame(render);
     };
 
     animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
-  }, []);
+  }, [homeClub, awayClub]);
 
   return (
     <div className="retro-box p-3 bg-gradient-to-b from-[#3d0b10] to-[#240507] border-2 border-[#85222b] shadow-2xl flex flex-col space-y-3">
@@ -454,7 +581,7 @@ export const Harpastum2DSimulator: React.FC<Harpastum2DSimulatorProps> = ({
         <div className="flex items-center gap-2">
           <Swords size={16} className="text-[#d4af37]" />
           <span className="font-roman font-bold text-white tracking-wide">
-            SIMULAZIONE 2D SENSIBLE HARPASTUM · 12 CONTRO 12
+            SIMULAZIONE 2D ARENA D'HARPASTUM · 12 CONTRO 12 (50 MINUTI)
           </span>
         </div>
 
@@ -572,7 +699,7 @@ export const Harpastum2DSimulator: React.FC<Harpastum2DSimulatorProps> = ({
           <span className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
           <span className="text-[#facc15] font-semibold">{liveCommentary}</span>
         </div>
-        <span className="text-[10px] text-[#94a3b8] font-data hidden sm:inline">Sensible Harpastum 96</span>
+        <span className="text-[10px] text-[#94a3b8] font-data hidden sm:inline">Arena Harpastum 50 a.C.</span>
       </div>
     </div>
   );

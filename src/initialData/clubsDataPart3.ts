@@ -248,7 +248,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_mau_cartenna: {
     id: 'club_mau_cartenna',
-    nome: 'Cartenna Flotta',
+    nome: 'Cartenna Classis',
     sigla: 'CAR',
     citta: 'Cartenna',
     regione: 'Mauretania Caesariensis',
@@ -696,7 +696,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_nub_napata: {
     id: 'club_nub_napata',
-    nome: 'Napata Amun Sacerdoti',
+    nome: 'Napata Amun Sacerdotes',
     sigla: 'NAP',
     citta: 'Napata',
     regione: 'Nubia Centrale',
@@ -1162,7 +1162,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_eti_debredamo: {
     id: 'club_eti_debredamo',
-    nome: 'Debre Damo Fortezza',
+    nome: 'Debre Damo Castrum',
     sigla: 'DEB',
     citta: 'Debre Damo',
     regione: 'Altopiano Abissino',
@@ -1342,7 +1342,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   // ==========================================
   club_cil_tarsus: {
     id: 'club_cil_tarsus',
-    nome: 'Tarsus Kydnos Trionfo',
+    nome: 'Tarsus Cydnus Triumphus',
     sigla: 'TAR',
     citta: 'Tarsus',
     regione: 'Cilicia Pedias',
@@ -1720,7 +1720,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_cap_comana_cappadocia: {
     id: 'club_cap_comana_cappadocia',
-    nome: 'Comana Bellona Sacerdoti',
+    nome: 'Comana Bellona Sacerdotes',
     sigla: 'COM',
     citta: 'Comana Cappadociae',
     regione: 'Cappadocia Settentrionale',
@@ -2608,7 +2608,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_nab_dumah: {
     id: 'club_nab_dumah',
-    nome: 'Dumat al-Jandal Arx',
+    nome: 'Dumah Arx',
     sigla: 'DUM',
     citta: 'Dumat',
     regione: 'Wadi Sirhan',
@@ -2630,7 +2630,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_nab_wadi_rum: {
     id: 'club_nab_wadi_rum',
-    nome: 'Wadi Rum Rubra Saxa',
+    nome: 'Iram Rubra Saxa',
     sigla: 'RUM',
     citta: 'Iram',
     regione: 'Deserto di Rum',
@@ -2652,7 +2652,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_nab_rehovot: {
     id: 'club_nab_rehovot',
-    nome: 'Rehovot Dunes Campiones',
+    nome: 'Rehovot Arenae Invicti',
     sigla: 'REH',
     citta: 'Rehovot ba-Negev',
     regione: 'Deserto del Negev',
@@ -2920,7 +2920,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_pon_zela: {
     id: 'club_pon_zela',
-    nome: 'Zela Anaitis Trionfale',
+    nome: 'Zela Anaitis Triumphalis',
     sigla: 'ZEL',
     citta: 'Zela',
     regione: 'Pontus Meridionalis',
@@ -2986,7 +2986,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_pon_heraclea_pontica: {
     id: 'club_pon_heraclea_pontica',
-    nome: 'Heraclea Pontica Ercole',
+    nome: 'Heraclea Pontica Hercules',
     sigla: 'HRP',
     citta: 'Heraclea Pontica',
     regione: 'Costa Pontica Occidentale',
@@ -3056,7 +3056,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_ill_epidaurum: {
     id: 'club_ill_epidaurum',
-    nome: 'Epidaurum Ragusa Antiqua',
+    nome: 'Epidaurum Adriatica',
     sigla: 'EPI',
     citta: 'Epidaurum',
     regione: 'Dalmazia Meridionale',
@@ -3100,7 +3100,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_ill_iader: {
     id: 'club_ill_iader',
-    nome: 'Iader Liburna Flotta',
+    nome: 'Iader Liburna Classis',
     sigla: 'IAD',
     citta: 'Iader',
     regione: 'Liburnia',
@@ -3151,7 +3151,7 @@ export const CLUBS_PART3: Record<string, Club> = {
     leagueId: 'league_illirica',
     reputazione: 750,
     colori: { primary: '#15803d', secondary: '#fef08a', text: '#ffffff' },
-    stadioNome: 'Campus Stari Grad',
+    stadioNome: 'Campus Pharensis',
     stadioCapienza: 18000,
     budgetTrasferimenti: 890000,
     budgetStipendi: 152000,
@@ -3254,7 +3254,7 @@ export const CLUBS_PART3: Record<string, Club> = {
   },
   club_ill_delminium: {
     id: 'club_ill_delminium',
-    nome: 'Delminium Dalmatae Guerrieri',
+    nome: 'Delminium Dalmatae Bellatores',
     sigla: 'DEL',
     citta: 'Delminium',
     regione: 'Entroterra Dalmata',

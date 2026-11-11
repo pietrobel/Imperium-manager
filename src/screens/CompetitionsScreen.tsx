@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import type { CareerSave, Match } from '../types';
 import { INITIAL_COMPETITIONS, getParticipatingClubsForCompetition } from '../engines/cupEngine';
-import { Trophy, Shield, Award, Users, Calendar, Flag, Sparkles } from 'lucide-react';
+import { Trophy, Shield, Award, Users, Calendar, Flag, Sparkles, ArrowLeft } from 'lucide-react';
 import { RetroButton } from '../components/RetroButton';
 
 interface CompetitionsScreenProps {
   career: CareerSave;
+  onBack?: () => void;
 }
 
-export const CompetitionsScreen: React.FC<CompetitionsScreenProps> = ({ career }) => {
+export const CompetitionsScreen: React.FC<CompetitionsScreenProps> = ({ career, onBack }) => {
   const competitions = Object.values(INITIAL_COMPETITIONS);
   const [selectedCompId, setSelectedCompId] = useState<string>(competitions[0].id);
 
@@ -23,15 +24,28 @@ export const CompetitionsScreen: React.FC<CompetitionsScreenProps> = ({ career }
     <div className="space-y-4 select-none">
       {/* Competitions Selector Bar */}
       <div className="retro-box p-3 flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 shrink-0">
-          <Trophy size={18} className="text-[#d4af37]" />
-          <div>
-            <h1 className="font-roman text-sm font-bold text-white tracking-wide">
-              LE GRANDI COPPE DELL'IMPERO · 182ª OLIMPIADE
-            </h1>
-            <span className="text-[10px] text-[#94a3b8]">
-              3 Coppe Internazionali e Tornei Nazionali a Eliminazione Diretta
-            </span>
+        <div className="flex items-center gap-3 shrink-0">
+          {onBack && (
+            <RetroButton
+              variant="secondary"
+              size="sm"
+              onClick={onBack}
+              className="flex items-center gap-1 font-roman text-xs font-bold shrink-0 cursor-pointer border border-[#d4af37]/40"
+            >
+              <ArrowLeft size={14} />
+              <span>Torna al Tabularium</span>
+            </RetroButton>
+          )}
+          <div className="flex items-center gap-2 shrink-0">
+            <Trophy size={18} className="text-[#d4af37]" />
+            <div>
+              <h1 className="font-roman text-sm font-bold text-white tracking-wide">
+                LE GRANDI COPPE DELL'IMPERO · 182ª OLIMPIADE
+              </h1>
+              <span className="text-[10px] text-[#94a3b8]">
+                3 Coppe Internazionali e Tornei Nazionali a Eliminazione Diretta
+              </span>
+            </div>
           </div>
         </div>
 

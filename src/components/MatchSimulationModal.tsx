@@ -267,7 +267,7 @@ export const MatchSimulationModal: React.FC<MatchSimulationModalProps> = ({
         {/* Footer */}
         <div className="retro-panel-header px-4 py-3 flex items-center justify-between border-t border-[#252e42]">
           <div className="text-[11px] text-[#94a3b8] hidden sm:block">
-            {activeTab === '2D_ARENA' ? 'Modalità Sensible Harpastum (Vista Tattica)' : 'Archivio Bollettini Impero'}
+            {activeTab === '2D_ARENA' ? 'Arena d’Harpastum 2D (Vista Tattica)' : 'Archivio Bollettini Impero'}
           </div>
           <RetroButton variant="crimson" size="md" onClick={onClose} className="font-bold uppercase tracking-wider">
             Prosegui al Tabularium &rarr;

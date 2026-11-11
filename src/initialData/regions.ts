@@ -8,7 +8,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Occidente Romano',
     descrizioneStorica: 'Il cuore politico e militare della Repubblica Romana all\'apice della 182ª Olimpiade. Campi di gara leggendari tra le sponde del Tevere, le fertili terre campane e la Gallia Cisalpina.',
     culturaDominante: 'Romana / Italica',
-    reputazioneCalcio: 950,
+    reputazioneSportiva: 950,
     leagueIds: ['league_romana']
   },
   reg_gallia: {
@@ -18,7 +18,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Europa Continentale & Celtica',
     descrizioneStorica: 'Terre di fiere tribù celtiche prima della sottomissione cesariana. Arverni, Edui, Sequani e Parisii si affrontano con ardore guerriero e fisicità prorompente.',
     culturaDominante: 'Gallica / Celtica',
-    reputazioneCalcio: 820,
+    reputazioneSportiva: 820,
     leagueIds: ['league_gallica']
   },
   reg_iberica: {
@@ -28,7 +28,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Occidente Romano',
     descrizioneStorica: 'Dalle miniere d’argento della Baetica alle roccaforti celtibere di Numantia. Gioco rapido, tecnico e intriso di fiera determinazione indigena.',
     culturaDominante: 'Iberica / Celtibera',
-    reputazioneCalcio: 840,
+    reputazioneSportiva: 840,
     leagueIds: ['league_iberica']
   },
   reg_cartaginese: {
@@ -38,7 +38,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Nord Africa & Nilo',
     descrizioneStorica: 'L’antica metropoli punica risorta dalle ceneri. Scuole tattiche marittime con influenze fenicie e veterani della grande tradizione militare barcida.',
     culturaDominante: 'Punica',
-    reputazioneCalcio: 870,
+    reputazioneSportiva: 870,
     leagueIds: ['league_cartaginese']
   },
   reg_africana: {
@@ -48,7 +48,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Nord Africa & Nilo',
     descrizioneStorica: 'Il granaio di Roma e le floride città costiere di Leptis Magna, Hadrumetum e Utica. Grandi stadi marittimi con atleti agili e resistenti al clima arido.',
     culturaDominante: 'Romano-Punica',
-    reputazioneCalcio: 780,
+    reputazioneSportiva: 780,
     leagueIds: ['league_africana']
   },
   reg_greca: {
@@ -58,7 +58,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Mediterraneo Orientale & Grecia',
     descrizioneStorica: 'La culla della filosofia, dei giochi atletici e della disciplina oplitica. Atene, Sparta e Corinto uniscono geometria di passaggi e rigore agonistico millenario.',
     culturaDominante: 'Greca / Ellenica',
-    reputazioneCalcio: 880,
+    reputazioneSportiva: 880,
     leagueIds: ['league_greca']
   },
   reg_macedone: {
@@ -68,7 +68,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Mediterraneo Orientale & Grecia',
     descrizioneStorica: 'Patria di Filippo II e Alessandro Magno. Tradizione guerriera della falange, con attacchi verticali fulminei e schieramenti compatti.',
     culturaDominante: 'Macedone',
-    reputazioneCalcio: 800,
+    reputazioneSportiva: 800,
     leagueIds: ['league_macedone']
   },
   reg_anatolica: {
@@ -76,9 +76,9 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     nome: 'Anatolia & Ionia',
     nomeLatino: 'Asia Minor et Ionia',
     macroArea: 'Oriente & Asia Anteriore',
-    descrizioneStorica: 'Metropoli cosmopolite come Efeso, Pergamo e Mileto. Calcio spettacolare, ricco di inventiva tecnica e grandi investimenti aristocratici.',
+    descrizioneStorica: 'Metropoli cosmopolite come Efeso, Pergamo e Mileto. Harpastum spettacolare, ricco di inventiva tecnica e grandi investimenti aristocratici.',
     culturaDominante: 'Greco-Asiatica',
-    reputazioneCalcio: 810,
+    reputazioneSportiva: 810,
     leagueIds: ['league_anatolica']
   },
   reg_siriana: {
@@ -88,7 +88,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Oriente & Asia Anteriore',
     descrizioneStorica: 'Incantevole crocevia carovaniero e marittimo tra Antiochia, Damasco, Tiro e Sidone. Atleti dal dribbling imprevedibile e grande visione tattica.',
     culturaDominante: 'Siriana / Fenicia',
-    reputazioneCalcio: 830,
+    reputazioneSportiva: 830,
     leagueIds: ['league_siriana']
   },
   reg_egizia: {
@@ -98,7 +98,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Nord Africa & Nilo',
     descrizioneStorica: 'Il fastoso regno tolemaico di Cleopatra. La sontuosa Alessandria e le città lungo il sacro Nilo schierano formazioni tra le più ricche e tecniche del globo.',
     culturaDominante: 'Egizia / Tolemaica',
-    reputazioneCalcio: 890,
+    reputazioneSportiva: 890,
     leagueIds: ['league_egizia']
   },
   reg_persiana: {
@@ -108,7 +108,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Oriente & Asia Anteriore',
     descrizioneStorica: 'L’antico cuore dell’impero achemenide con Persepoli e Susa. Grande orgoglio imperiale, arcieri della palla e atleti dal tiro potente da fuori area.',
     culturaDominante: 'Persiana',
-    reputazioneCalcio: 820,
+    reputazioneSportiva: 820,
     leagueIds: ['league_persiana']
   },
   reg_partica: {
@@ -118,7 +118,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Oriente & Asia Anteriore',
     descrizioneStorica: 'Il grande rivale di Roma a oriente: Ctesifonte, Seleucia e le steppe mesopotamiche. Contropiedi letali ispirati alla famosa "freccia dei Parti".',
     culturaDominante: 'Partica',
-    reputazioneCalcio: 860,
+    reputazioneSportiva: 860,
     leagueIds: ['league_partica']
   },
   reg_armena: {
@@ -128,7 +128,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Oriente & Asia Anteriore',
     descrizioneStorica: 'Il regno montuoso di Tigrane il Grande. Difesa d’acciaio abituata ai climi rigidi del Caucaso e ripartenze coraggiose.',
     culturaDominante: 'Armena',
-    reputazioneCalcio: 790,
+    reputazioneSportiva: 790,
     leagueIds: ['league_armena']
   },
   reg_battriana: {
@@ -138,7 +138,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Terre Lontane & Confini',
     descrizioneStorica: 'L’avamposto ellenistico più remoto verso l’India e le vette dell’Hindu Kush. Connubio unico tra disciplina greca e cavalleria centroasiatica.',
     culturaDominante: 'Greco-Battriana',
-    reputazioneCalcio: 770,
+    reputazioneSportiva: 770,
     leagueIds: ['league_battriana']
   },
   reg_arabica: {
@@ -148,7 +148,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Terre Lontane & Confini',
     descrizioneStorica: 'La leggendaria via dei profumi e delle spezie dei regni di Saba e Qataban. Squadre veloci, abituate a ritmi torridi e superfici dure.',
     culturaDominante: 'Araba / Sabea',
-    reputazioneCalcio: 730,
+    reputazioneSportiva: 730,
     leagueIds: ['league_arabica']
   },
   reg_britannia: {
@@ -156,9 +156,9 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     nome: 'Britannia Insulare',
     nomeLatino: 'Britannia Insularis',
     macroArea: 'Europa Continentale & Celtica',
-    descrizioneStorica: 'L’isola avvolta dalle nebbie del nord: Trinovanti, Siluri e Briganti. Calcio fangoso, aggressivo, basato sul contrasto ruvido e l’elevazione aerea.',
+    descrizioneStorica: 'L’isola avvolta dalle nebbie del nord: Trinovanti, Siluri e Briganti. Harpastum fangoso, aggressivo, basato sul contrasto ruvido e l’elevazione aerea.',
     culturaDominante: 'Britanna / Celtica',
-    reputazioneCalcio: 740,
+    reputazioneSportiva: 740,
     leagueIds: ['league_britannica']
   },
   reg_germania: {
@@ -168,7 +168,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Europa Continentale & Celtica',
     descrizioneStorica: 'Le fitte foreste della selva ercinica oltre il Reno. Guerrieri imponenti dotati di forza bruta, pressing feroce e resistenza instancabile.',
     culturaDominante: 'Germanica',
-    reputazioneCalcio: 760,
+    reputazioneSportiva: 760,
     leagueIds: ['league_germanica']
   },
   reg_tracia: {
@@ -178,7 +178,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Mediterraneo Orientale & Grecia',
     descrizioneStorica: 'La terra dei gladiatori e di Spartaco. Squadre indomite, dal gioco fisico e spietato che non concede respiro agli avversari.',
     culturaDominante: 'Tracica',
-    reputazioneCalcio: 750,
+    reputazioneSportiva: 750,
     leagueIds: ['league_tracica']
   },
   reg_dacia: {
@@ -188,7 +188,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Europa Continentale & Celtica',
     descrizioneStorica: 'Il formidabile regno carpatoc del re Burebista nel suo apogeo. Organizzazione solida e giocatori armati della caratteristica falx atletica.',
     culturaDominante: 'Dacica',
-    reputazioneCalcio: 770,
+    reputazioneSportiva: 770,
     leagueIds: ['league_dacica']
   },
   reg_numidica: {
@@ -198,7 +198,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Nord Africa & Nilo',
     descrizioneStorica: 'La patria dei re Giuba e Massinissa. Famosa per la sua agilissima cavalleria, riflessa in ali scattanti e contropiedisti imprendibili.',
     culturaDominante: 'Numida / Berbera',
-    reputazioneCalcio: 780,
+    reputazioneSportiva: 780,
     leagueIds: ['league_numidica']
   },
   reg_mauritana: {
@@ -208,7 +208,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Nord Africa & Nilo',
     descrizioneStorica: 'Sotto il governo del re Bocco e Bogud alle pendici dell’Atlante e sullo stretto d’Ercole. Squadre gagliarde e difese molto rocciose.',
     culturaDominante: 'Mauritana',
-    reputazioneCalcio: 730,
+    reputazioneSportiva: 730,
     leagueIds: ['league_mauritana']
   },
   reg_cirenaica: {
@@ -218,7 +218,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Nord Africa & Nilo',
     descrizioneStorica: 'Le floride cinque città greche di Cirene, Apollonia, Barca, Teuchira e Berenice. Tradizione classica raffinata arricchita dalla ricchezza del silfio.',
     culturaDominante: 'Greco-Libica',
-    reputazioneCalcio: 750,
+    reputazioneSportiva: 750,
     leagueIds: ['league_cirenaica']
   },
   reg_nubiana: {
@@ -228,7 +228,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Nord Africa & Nilo',
     descrizioneStorica: 'L’antico regno dei faraoni neri di Meroe a monte delle cateratte del Nilo. Arcieri prodigiosi e atleti dalla falcata possente.',
     culturaDominante: 'Kushita / Nubiana',
-    reputazioneCalcio: 720,
+    reputazioneSportiva: 720,
     leagueIds: ['league_nubiana']
   },
   reg_etiopica: {
@@ -238,7 +238,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Terre Lontane & Confini',
     descrizioneStorica: 'I primi fasti del regno di Axum tra il Mar Rosso e l’altopiano etiopico. Resistenza prodigiosa all’altitudine e polmoni d’acciaio.',
     culturaDominante: 'Axumita',
-    reputazioneCalcio: 710,
+    reputazioneSportiva: 710,
     leagueIds: ['league_etiopica']
   },
   reg_cilicia: {
@@ -248,7 +248,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Oriente & Asia Anteriore',
     descrizioneStorica: 'Terra di Tarsus e celebri porti marittimi. Tradizione di audacia corsara, astuzia tattica e rapida transizione positiva.',
     culturaDominante: 'Cilicia / Ellenistica',
-    reputazioneCalcio: 760,
+    reputazioneSportiva: 760,
     leagueIds: ['league_cilicia']
   },
   reg_cappadoce: {
@@ -258,7 +258,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Oriente & Asia Anteriore',
     descrizioneStorica: 'L’altopiano anatolico di Mazaca ai piedi del Monte Argaeus. Famoso per i cavalli da corsa e una disciplina agonistica inflessibile.',
     culturaDominante: 'Cappadoce',
-    reputazioneCalcio: 750,
+    reputazioneSportiva: 750,
     leagueIds: ['league_cappadoce']
   },
   reg_sarmatica: {
@@ -268,7 +268,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Terre Lontane & Confini',
     descrizioneStorica: 'Le sterminate pianure delle steppe a nord del Mar Nero. Popoli nomadi dall’agilità felina e attacchi a valanga a campo aperto.',
     culturaDominante: 'Sarmatica / Scita',
-    reputazioneCalcio: 740,
+    reputazioneSportiva: 740,
     leagueIds: ['league_sarmatica']
   },
   reg_nabataea: {
@@ -278,7 +278,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Oriente & Asia Anteriore',
     descrizioneStorica: 'La misteriosa e ricchissima città intagliata nella roccia arenaria rossa sotto re Malichus I. Maestria nell’amministrazione e grande compattezza difensiva.',
     culturaDominante: 'Nabatea',
-    reputazioneCalcio: 770,
+    reputazioneSportiva: 770,
     leagueIds: ['league_nabatea']
   },
   reg_pontus: {
@@ -288,7 +288,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Oriente & Asia Anteriore',
     descrizioneStorica: 'L’antico regno di Mitridate il Grande affacciato sulle acque del Ponto. Spirito di rivalsa, tenacia tattica e grandi maestri di gioco.',
     culturaDominante: 'Pontica / Ellenistica',
-    reputazioneCalcio: 800,
+    reputazioneSportiva: 800,
     leagueIds: ['league_pontica']
   },
   reg_illyricum: {
@@ -298,7 +298,7 @@ export const INITIAL_REGIONS: Record<string, Region> = {
     macroArea: 'Occidente Romano',
     descrizioneStorica: 'Le coste adriatiche e le montagne dei Dalmati e Liburni. Atleti fieri, grandi nuotatori e difensori rocciosi famosi per la loro tenacia.',
     culturaDominante: 'Illirica / Dalmata',
-    reputazioneCalcio: 750,
+    reputazioneSportiva: 750,
     leagueIds: ['league_illirica']
   }
 };

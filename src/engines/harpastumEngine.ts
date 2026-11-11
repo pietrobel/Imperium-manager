@@ -152,7 +152,7 @@ export const HARPASTUM_ROLES: Record<string, HarpastumRoleDefinition> = {
 };
 
 /**
- * Traduce qualsiasi ruolo legacy (calcio) o Harpastum nel ruolo ufficiale Harpastum.
+ * Traduce qualsiasi ruolo nel ruolo tattico ufficiale Harpastum.
  */
 export function getHarpastumRole(role: Role | string): HarpastumRoleDefinition {
   if (role === 'POR' || role === 'CUS') return HARPASTUM_ROLES.CUS;

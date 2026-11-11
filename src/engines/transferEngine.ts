@@ -15,10 +15,6 @@ export function calculatePlayerMarketValue(player: Player): number {
   const computedVal = Math.max(25000, Math.round((base * potBonus * ageMult) / 2500) * 2500);
 
   if (player.prezzoRichiesto && player.prezzoRichiesto > 0) {
-    // If asking price is excessively high from legacy 240x multiplier, cap it relative to fair value
-    if (player.prezzoRichiesto > computedVal * 2.2) {
-      return computedVal;
-    }
     return player.prezzoRichiesto;
   }
   return computedVal;

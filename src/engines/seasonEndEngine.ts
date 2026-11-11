@@ -153,7 +153,7 @@ export function processSeasonEndTransition(
       youth.annoNascita = nextYear - youth.eta;
       youth.valoreGenerale = 60 + Math.floor(rng() * 9); // 60-68 OVR
       youth.potenziale = 76 + Math.floor(rng() * 12);     // 76-88 POT
-      youth.prezzoRichiesto = Math.round(youth.valoreGenerale * youth.valoreGenerale * 240);
+      youth.prezzoRichiesto = Math.round(youth.valoreGenerale * youth.valoreGenerale * 75);
       youth.inListaTrasferimenti = false;
 
       updatedPlayers[youth.id] = youth;

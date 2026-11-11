@@ -104,6 +104,6 @@ export function generateYouthPlayer(clubId: string, nationality: string = 'Roman
     },
     carrieraPassata: [],
     inListaTrasferimenti: false,
-    prezzoRichiesto: Math.round(overall * overall * 220)
+    prezzoRichiesto: Math.round(overall * overall * 70)
   };
 }

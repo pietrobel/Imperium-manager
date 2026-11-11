@@ -61,7 +61,7 @@ export function convertBCToOlympicEra(yearBC: number): OlympicEraDate {
 }
 
 /**
- * Scansione naturale della stagione calcistica (inizio al solstizio d'estate):
+ * Scansione naturale della stagione d'Harpastum (inizio al solstizio d'estate):
  * - Giornate 1 - 10: "Fase Autunnale" (Semina e Grandi Ludi)
  * - Giornate 11 - 18: "Pausa Invernale" (Mesi del maltempo e Saturnali)
  * - Giornate 19 - 26: "Fase Primaverile" (Ritorno delle Legioni e Grandi Giochi)

@@ -5,6 +5,7 @@ import { calculateLeagueTable } from '../engines/leagueEngine';
 import { Calendar, Users, Trophy, Newspaper, ArrowRight, Shield } from 'lucide-react';
 import type { ScreenId } from '../components/RetroTopNav';
 import { getHarpastumRole, getHarpastumRoleBadgeStyle } from '../engines/harpastumEngine';
+import { TacticalSlate } from '../components/TacticalSlate';
 
 interface ManagerDashboardScreenProps {
   career: CareerSave;
@@ -187,6 +188,15 @@ export const ManagerDashboardScreen: React.FC<ManagerDashboardScreenProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Bacheca Tattica Drag & Drop dell'Harpastum */}
+      {userClub && (
+        <TacticalSlate
+          userClub={userClub}
+          squad={userPlayers}
+          onSelectPlayer={onSelectPlayer}
+        />
+      )}
 
       {/* Main Grid: Standings Preview + Squad Snapshot + World News */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

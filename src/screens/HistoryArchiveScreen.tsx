@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { INITIAL_HALL_OF_FAME } from '../engines/historyEngine';
 import { INITIAL_REGIONS } from '../initialData/regions';
 import { INITIAL_CLUBS } from '../initialData/clubs';
-import { Trophy, Award, Scroll, Globe, MapPin, Landmark } from 'lucide-react';
+import { Trophy, Award, Scroll, Globe, MapPin, Landmark, ArrowLeft } from 'lucide-react';
+import { RetroButton } from '../components/RetroButton';
 import type { CareerSave } from '../types';
 
 interface HistoryArchiveScreenProps {
   career?: CareerSave | null;
+  onBack?: () => void;
 }
 
-export const HistoryArchiveScreen: React.FC<HistoryArchiveScreenProps> = ({ career }) => {
+export const HistoryArchiveScreen: React.FC<HistoryArchiveScreenProps> = ({ career, onBack }) => {
   const [activeTab, setActiveTab] = useState<'ALBO' | 'ATLANTE'>('ALBO');
   const [selectedMacroArea, setSelectedMacroArea] = useState<string>('TUTTE');
   const [selectedRegionId, setSelectedRegionId] = useState<string>('reg_roma');
@@ -29,13 +31,26 @@ export const HistoryArchiveScreen: React.FC<HistoryArchiveScreenProps> = ({ care
     <div className="space-y-4">
       {/* Header & Tabs */}
       <div className="retro-box p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Scroll size={16} className="text-[#d4af37]" />
-          <div>
-            <h1 className="font-roman text-sm font-bold text-white tracking-wide">
-              DOCUMENTI SENATORII DELL'IMPERO · ERA OLIMPICA & FASTI CONSOLARI
-            </h1>
-            <span className="text-[10px] text-[#94a3b8]">Fasti Consolari, Albo dei Trionfi e Geografia delle Province</span>
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <RetroButton
+              variant="secondary"
+              size="sm"
+              onClick={onBack}
+              className="flex items-center gap-1 font-roman text-xs font-bold shrink-0 cursor-pointer border border-[#d4af37]/40"
+            >
+              <ArrowLeft size={14} />
+              <span>{career ? 'Torna al Tabularium' : 'Torna al Menu'}</span>
+            </RetroButton>
+          )}
+          <div className="flex items-center gap-2">
+            <Scroll size={16} className="text-[#d4af37]" />
+            <div>
+              <h1 className="font-roman text-sm font-bold text-white tracking-wide">
+                DOCUMENTI SENATORII DELL'IMPERO · ERA OLIMPICA & FASTI CONSOLARI
+              </h1>
+              <span className="text-[10px] text-[#94a3b8]">Fasti Consolari, Albo dei Trionfi e Geografia delle Province</span>
+            </div>
           </div>
         </div>
 
@@ -182,7 +197,7 @@ export const HistoryArchiveScreen: React.FC<HistoryArchiveScreenProps> = ({ care
                       <div className="text-[10px] text-[#94a3b8]">{reg.culturaDominante}</div>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] font-data text-[#facc15] font-bold block">Rep. {reg.reputazioneCalcio}</span>
+                      <span className="text-[10px] font-data text-[#facc15] font-bold block">Rep. {reg.reputazioneSportiva}</span>
                       <span className="text-[9px] text-[#64748b] block">{reg.macroArea.split('&')[0]}</span>
                     </div>
                   </button>
@@ -212,8 +227,8 @@ export const HistoryArchiveScreen: React.FC<HistoryArchiveScreenProps> = ({ care
                         <span className="font-bold text-white">{activeRegion.culturaDominante}</span>
                       </div>
                       <div className="retro-inset p-2">
-                        <span className="text-[10px] text-[#64748b] block font-roman">REPUTAZIONE CALCISTICA</span>
-                        <span className="font-bold text-[#facc15]">{activeRegion.reputazioneCalcio} / 1000</span>
+                        <span className="text-[10px] text-[#64748b] block font-roman">PRESTIGIO D'ARENA</span>
+                        <span className="font-bold text-[#facc15]">{activeRegion.reputazioneSportiva} / 1000</span>
                       </div>
                       <div className="retro-inset p-2 col-span-2 sm:col-span-1">
                         <span className="text-[10px] text-[#64748b] block font-roman">CLUB REGISTRATI</span>
@@ -263,7 +278,24 @@ export const HistoryArchiveScreen: React.FC<HistoryArchiveScreenProps> = ({ care
                 </>
               )}
             </div>
-          </div>
+        </div>
+      )}
+
+      {/* Persistent Bottom Return Ribbon */}
+      {onBack && (
+        <div className="retro-box p-3 flex items-center justify-between border border-[#3b0b10] bg-[#1a0406]">
+          <span className="text-[11px] text-[#94a3b8] font-roman">
+            {career ? `Coorte Attiva: ${career.clubs[career.userClubId]?.nome || 'Tabularium'}` : 'Consultazione Fasti Senatus (Accesso Pubblico)'}
+          </span>
+          <RetroButton
+            variant="gold"
+            size="sm"
+            onClick={onBack}
+            className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-xs px-3"
+          >
+            <ArrowLeft size={13} />
+            <span>{career ? 'Torna al Tabularium' : 'Torna al Menu Principale'}</span>
+          </RetroButton>
         </div>
       )}
     </div>

@@ -37,7 +37,7 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
           IMPERIUM MANAGER
         </h1>
         <div className="font-roman text-xs tracking-widest text-[#cbd5e1] uppercase mt-1 mb-6 text-center">
-          182ª OLIMPIADE · IL GRANDE MANAGERIALE CALCISTICO DELL’ANTICHITÀ
+          182ª OLIMPIADE · IL GRANDE MANAGERIALE D'HARPASTUM DELL’ANTICHITÀ
         </div>
 
         {/* Menu Buttons List */}
@@ -117,7 +117,7 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
 
         {/* Footer notes */}
         <div className="mt-8 pt-4 border-t border-[#1b2333] w-full text-center text-[10px] text-[#64748b]">
-          Simulatore gestionale calcistico storico · Sensible / Championship Manager Style · Nessuna dipendenza AI esterna
+          Simulatore gestionale storico dell'Harpastum · Campionato & Coorti dell'Impero · Nessuna dipendenza AI esterna
         </div>
       </div>
     </div>

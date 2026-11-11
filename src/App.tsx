@@ -17,6 +17,7 @@ import { FixturesScreen } from './screens/FixturesScreen';
 import { TransferMarketScreen } from './screens/TransferMarketScreen';
 import { CompetitionsScreen } from './screens/CompetitionsScreen';
 import { NationalTeamsScreen } from './screens/NationalTeamsScreen';
+import { MilitaryTrainingScreen } from './screens/MilitaryTrainingScreen';
 import { HistoryArchiveScreen } from './screens/HistoryArchiveScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { createNewCareer, advanceMatchday, type CreateCareerParams } from './services/careerService';
@@ -198,10 +199,38 @@ export default function App() {
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}
         onQuickSave={handleQuickSave}
+        onBackToMainMenu={() => setAppState('MAIN_MENU')}
+        hasActiveCareer={!!activeCareer}
       />
 
       {/* Main Screen Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-6 overflow-x-hidden">
+        {/* Fallback if navigated to career-only screens without active career */}
+        {!activeCareer && currentScreen !== 'HISTORY' && currentScreen !== 'SETTINGS' && (
+          <div className="retro-box p-8 text-center space-y-4 max-w-lg mx-auto my-12 border-2 border-[#d4af37] bg-[#240507]">
+            <div className="w-12 h-12 rounded-full border-2 border-[#d4af37] bg-[#1a0406] flex items-center justify-center mx-auto text-[#d4af37] shadow-lg">
+              📜
+            </div>
+            <h2 className="font-roman text-lg font-bold text-[#facc15] tracking-wide">
+              NESSUNA COORTE ATTIVA CARICATA
+            </h2>
+            <p className="text-xs text-[#cbd5e1] font-roman leading-relaxed">
+              Stai consultando gli archivi dell'Impero in modalità pubblica. Per visualizzare la coorte, l'addestramento militare e il campionato in corso, inizia una Nuova Carriera o carica un salvataggio dal Menu Principale.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <RetroButton variant="secondary" size="md" onClick={() => setAppState('MAIN_MENU')}>
+                &larr; Torna al Menu Principale
+              </RetroButton>
+              <RetroButton variant="gold" size="md" onClick={() => setCurrentScreen('HISTORY')}>
+                Consulta Albo d'Oro
+              </RetroButton>
+              <RetroButton variant="crimson" size="md" onClick={() => setAppState('NEW_GAME')}>
+                Inizia Nuova Carriera &rarr;
+              </RetroButton>
+            </div>
+          </div>
+        )}
+
         {currentScreen === 'DASHBOARD' && activeCareer && (
           <ManagerDashboardScreen
             career={activeCareer}
@@ -217,6 +246,14 @@ export default function App() {
             onSelectPlayer={setSelectedPlayer}
             onUpdateFormation={handleUpdateFormation}
             onToggleTransferList={handleTogglePlayerTransferList}
+          />
+        )}
+
+        {currentScreen === 'TRAINING' && activeCareer && (
+          <MilitaryTrainingScreen
+            career={activeCareer}
+            onUpdateCareer={setActiveCareer}
+            onSelectPlayer={setSelectedPlayer}
           />
         )}
 
@@ -251,7 +288,10 @@ export default function App() {
         )}
 
         {currentScreen === 'HISTORY' && (
-          <HistoryArchiveScreen career={activeCareer} />
+          <HistoryArchiveScreen
+            career={activeCareer}
+            onBack={() => activeCareer ? setCurrentScreen('DASHBOARD') : setAppState('MAIN_MENU')}
+          />
         )}
 
         {currentScreen === 'SETTINGS' && (

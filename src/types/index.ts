@@ -156,6 +156,15 @@ export interface ClubHistoryEntry {
   trofei: string[];
 }
 
+export interface ClubHeraldryData {
+  iconType: 'AQUILA' | 'LUPA' | 'TORO' | 'CINGHIALE' | 'ELEFANTE' | 'LEONE' | 'FULMINE' | 'GLADIO' | 'FALCO' | 'PEGASO';
+  motto: string;
+  paletteName?: string;
+  primaryColor: string;
+  secondaryColor: string;
+  goldTrim?: boolean;
+}
+
 export interface Club {
   id: string;
   nome: string;
@@ -166,6 +175,7 @@ export interface Club {
   leagueId: string;
   reputazione: number; // 1-1000
   colori: ClubColors;
+  araldica?: ClubHeraldryData;
   stadioNome: string;
   stadioCapienza: number;
   budgetTrasferimenti: number; // Sesterzi (HS)
@@ -188,7 +198,7 @@ export interface Region {
   macroArea: 'Occidente Romano' | 'Europa Continentale & Celtica' | 'Mediterraneo Orientale & Grecia' | 'Oriente & Asia Anteriore' | 'Nord Africa & Nilo' | 'Terre Lontane & Confini';
   descrizioneStorica: string;
   culturaDominante: string;
-  reputazioneCalcio: number; // 1-1000
+  reputazioneSportiva: number; // 1-1000
   leagueIds: string[];
 }
 

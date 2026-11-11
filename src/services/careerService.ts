@@ -15,6 +15,8 @@ import { careerRepository } from '../repositories/DexieCareerRepository';
 import { initializeNationalTeams, generateNationalMatches } from '../engines/nationalTeamsEngine';
 import { advanceValetudinarium, MEDICAL_STAFF_TIERS } from '../engines/militaryTrainingEngine';
 
+import type { ClubHeraldryData } from '../types';
+
 export interface CreateCareerParams {
   managerName: string;
   managerCognome: string;
@@ -22,6 +24,7 @@ export interface CreateCareerParams {
   userClubId: string;
   nationality?: string;
   culture?: 'ROMANA' | 'GRECA' | 'EGIZIA' | 'GALLICA' | 'PUNICA' | 'PERSICA' | 'GERMANICA';
+  customHeraldry?: ClubHeraldryData;
 }
 
 export function createNewCareer(params: CreateCareerParams): CareerSave {
@@ -37,6 +40,14 @@ export function createNewCareer(params: CreateCareerParams): CareerSave {
   if (clubs[params.userClubId]) {
     clubs[params.userClubId].isUserControlled = true;
     clubs[params.userClubId].allenatoreNome = `${params.managerName} ${params.managerCognome} (${params.originFamily})`;
+    if (params.customHeraldry) {
+      clubs[params.userClubId].araldica = params.customHeraldry;
+      clubs[params.userClubId].colori = {
+        primary: params.customHeraldry.primaryColor,
+        secondary: params.customHeraldry.secondaryColor,
+        text: '#ffffff'
+      };
+    }
     clubs[params.userClubId].impostazioniAllenamento = {
       intensitaGenerale: 'NORMALIS',
       dottrinaPrevalente: 'TAXIS_DECURSIO',
