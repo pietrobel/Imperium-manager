@@ -254,7 +254,7 @@ export function submitClubFeeNegotiation(
       id: `diag_${Date.now()}_timeout`,
       speaker: 'SELLER',
       speakerName: sellerName,
-      text: `Abbiamo esaurito il tempo delle consultazioni senatorie senza trovare un'intesa. Ritiriamo il calciatore dalle negoziazioni.`,
+      text: `Abbiamo esaurito il tempo delle consultazioni senatorie senza trovare un'intesa. Ritiriamo l'atleta dalle negoziazioni.`,
       timestamp: currentDateText,
       type: 'REJECT'
     });

@@ -30,7 +30,7 @@ export function createWeeklyWorldNews(
     },
     {
       titolo: `La flotta di Alessandria pronta per i tornei continentali`,
-      corpo: `I Tolomei investono cento talenti d'argento per rinforzare i campioni del Faro. I mercanti fenici e punici riferiscono di trattative febbrile per accaparrarsi i migliori frombolieri dell'area di rigore.`,
+      corpo: `I Tolomei investono cento talenti d'argento per rinforzare i campioni del Faro. I mercanti fenici e punici riferiscono di trattative febbrili per accaparrarsi i migliori incursori della linea di meta.`,
       cat: 'MERCATO' as const
     }
   ];

@@ -215,6 +215,40 @@ const SQUAD_SEEDS: Record<string, PlayerSeed[]> = {
     { nome: 'Vellocatus', cognome: 'Armiger', ruolo: 'DFC', eta: 21, nazionalita: 'Britanna', valoreGenerale: 72, potenziale: 79, piede: 'Destro', stipendio: 11000 },
     { nome: 'Eburac', cognome: 'Iuvenis', ruolo: 'ATT', eta: 18, nazionalita: 'Britanna', valoreGenerale: 71, potenziale: 82, piede: 'Destro', stipendio: 10000 }
   ],
+  club_bri_camulodunum: [
+    { nome: 'Cunobeline', cognome: 'Rex Trinovantum', soprannome: 'Il Signor di Camulodunum', ruolo: 'ATT', eta: 25, nazionalita: 'Britanna', valoreGenerale: 84, potenziale: 89, piede: 'Destro', stipendio: 32000 },
+    { nome: 'Addedomarus', cognome: 'Trinovans', ruolo: 'POR', eta: 28, nazionalita: 'Britanna', valoreGenerale: 79, potenziale: 81, piede: 'Destro', stipendio: 20000 },
+    { nome: 'Tasciovanus', cognome: 'Verulamius', ruolo: 'DFC', eta: 27, nazionalita: 'Britanna', valoreGenerale: 81, potenziale: 83, piede: 'Destro', stipendio: 24000 },
+    { nome: 'Adminius', cognome: 'Cantiacus', ruolo: 'TD', eta: 23, nazionalita: 'Britanna', valoreGenerale: 77, potenziale: 83, piede: 'Destro', stipendio: 17000 },
+    { nome: 'Immanuentius', cognome: 'Custos', ruolo: 'DFC', eta: 26, nazionalita: 'Britanna', valoreGenerale: 78, potenziale: 80, piede: 'Sinistro', stipendio: 18000 },
+    { nome: 'Colne', cognome: 'Riparius', ruolo: 'TS', eta: 24, nazionalita: 'Britanna', valoreGenerale: 76, potenziale: 81, piede: 'Sinistro', stipendio: 16000 },
+    { nome: 'Camulos', cognome: 'Bellator', soprannome: 'Il Dio della Guerra', ruolo: 'MED', eta: 26, nazionalita: 'Britanna', valoreGenerale: 80, potenziale: 82, piede: 'Destro', stipendio: 22000 },
+    { nome: 'Andate', cognome: 'Victrix', ruolo: 'CC', eta: 24, nazionalita: 'Britanna', valoreGenerale: 79, potenziale: 84, piede: 'Ambidestro', stipendio: 21000 },
+    { nome: 'Dubnovellauno', cognome: 'Cantius', ruolo: 'TRQ', eta: 22, nazionalita: 'Britanna', valoreGenerale: 80, potenziale: 86, piede: 'Sinistro', stipendio: 22000 },
+    { nome: 'Epaticcus', cognome: 'Sagitta', ruolo: 'AD', eta: 21, nazionalita: 'Britanna', valoreGenerale: 78, potenziale: 85, piede: 'Destro', stipendio: 18000 },
+    { nome: 'Prasutagus', cognome: 'Icenus', ruolo: 'AS', eta: 23, nazionalita: 'Britanna', valoreGenerale: 79, potenziale: 85, piede: 'Sinistro', stipendio: 20000 }
+  ],
+  club_bri_verulamium: [
+    { nome: 'Lugotorix', cognome: 'Cantii', ruolo: 'POR', eta: 27, nazionalita: 'Britanna', valoreGenerale: 77, potenziale: 79, piede: 'Destro', stipendio: 17000 },
+    { nome: 'Taximagulus', cognome: 'Scutum', ruolo: 'DFC', eta: 29, nazionalita: 'Britanna', valoreGenerale: 80, potenziale: 80, piede: 'Destro', stipendio: 21000 },
+    { nome: 'Segovax', cognome: 'Verulamii', ruolo: 'DFC', eta: 25, nazionalita: 'Britanna', valoreGenerale: 78, potenziale: 82, piede: 'Destro', stipendio: 18000 },
+    { nome: 'Cingetorix', cognome: 'Britannus', ruolo: 'MED', eta: 26, nazionalita: 'Britanna', valoreGenerale: 79, potenziale: 81, piede: 'Destro', stipendio: 20000 },
+    { nome: 'Verica', cognome: 'Atrebas', ruolo: 'CC', eta: 24, nazionalita: 'Britanna', valoreGenerale: 78, potenziale: 83, piede: 'Ambidestro', stipendio: 19000 },
+    { nome: 'Tincomarus', cognome: 'Celer', ruolo: 'ATT', eta: 25, nazionalita: 'Britanna', valoreGenerale: 81, potenziale: 84, piede: 'Destro', stipendio: 24000 }
+  ],
+  club_bri_aquaesulis: [
+    { nome: 'Sul', cognome: 'Minerva', ruolo: 'POR', eta: 26, nazionalita: 'Britanna', valoreGenerale: 76, potenziale: 79, piede: 'Destro', stipendio: 15000 },
+    { nome: 'Bladud', cognome: 'Fontanus', ruolo: 'DFC', eta: 27, nazionalita: 'Britanna', valoreGenerale: 78, potenziale: 80, piede: 'Destro', stipendio: 18000 },
+    { nome: 'Dobunnos', cognome: 'Corinius', ruolo: 'CC', eta: 24, nazionalita: 'Britanna', valoreGenerale: 77, potenziale: 83, piede: 'Ambidestro', stipendio: 17000 },
+    { nome: 'Bodvoc', cognome: 'Aurum', ruolo: 'TRQ', eta: 22, nazionalita: 'Britanna', valoreGenerale: 79, potenziale: 86, piede: 'Sinistro', stipendio: 20000 },
+    { nome: 'Dumnonos', cognome: 'Feroce', ruolo: 'ATT', eta: 25, nazionalita: 'Britanna', valoreGenerale: 80, potenziale: 83, piede: 'Destro', stipendio: 22000 }
+  ],
+  club_bri_monainsula: [
+    { nome: 'Mona', cognome: 'Sacerdos', soprannome: 'Il Druido Bianco', ruolo: 'MED', eta: 28, nazionalita: 'Britanna', valoreGenerale: 80, potenziale: 81, piede: 'Ambidestro', stipendio: 21000 },
+    { nome: 'Ordovix', cognome: 'Saxum', ruolo: 'DFC', eta: 26, nazionalita: 'Britanna', valoreGenerale: 79, potenziale: 81, piede: 'Destro', stipendio: 19000 },
+    { nome: 'Siluros', cognome: 'Igneus', ruolo: 'ATT', eta: 23, nazionalita: 'Britanna', valoreGenerale: 81, potenziale: 87, piede: 'Destro', stipendio: 24000 },
+    { nome: 'Calgacus', cognome: 'Borealis', soprannome: 'La Spada del Nord', ruolo: 'AD', eta: 21, nazionalita: 'Britanna', valoreGenerale: 79, potenziale: 88, piede: 'Destro', stipendio: 20000 }
+  ],
 
   // --- LEGA ELLENICA ---
   club_sparta: [

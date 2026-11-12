@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { CareerSave, Player } from '../types';
 import { calculateLeagueTable } from '../engines/leagueEngine';
 import { PYRAMID_LEAGUE_PAIRS } from '../engines/promotionRelegationEngine';
+import { AthleteJerseyBadge } from '../components/AthleteJerseyBadge';
 import { Trophy, Award, ArrowUpCircle, ArrowDownCircle, ShieldCheck, Layers } from 'lucide-react';
 
 interface LeagueTableScreenProps {
@@ -40,9 +41,9 @@ export const LeagueTableScreen: React.FC<LeagueTableScreenProps> = ({
     .slice(0, 10);
 
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col gap-2.5 min-h-0 overflow-hidden">
       {/* League Selection Header */}
-      <div className="retro-box p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 border-l-[#d4af37]">
+      <div className="retro-box p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-3">
           <Trophy size={18} className="text-[#d4af37]" />
           <div>
@@ -99,24 +100,24 @@ export const LeagueTableScreen: React.FC<LeagueTableScreenProps> = ({
 
       {/* Circuit Info Banner */}
       {pyramidPair && (
-        <div className="retro-inset p-2.5 border border-[#521016] flex items-center justify-between text-xs text-[#cbd5e1]">
+        <div className="retro-inset px-3 py-1.5 border border-[#521016] flex items-center justify-between text-xs text-[#cbd5e1] shrink-0">
           <div className="flex items-center gap-2">
             <ShieldCheck size={14} className="text-[#facc15]" />
             <span className="font-roman text-[11px]">
               Circuito Territoriale: <strong className="text-white">{pyramidPair.name}</strong> · Scambio annuale: <strong>2 Squadre</strong>
             </span>
           </div>
-          <span className="text-[10px] font-roman text-[#facc15]">
+          <span className="text-[10px] font-roman text-[#facc15] hidden md:inline">
             {isTopTier ? 'Ultime 2 retrocedono nella Secunda Divisio' : 'Prime 2 vengono promosse nella Prima Divisio'}
           </span>
         </div>
       )}
 
       {/* Main Table and Side Leaderboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-4 gap-3 items-stretch overflow-hidden">
         {/* League Table Standings (3 Cols) */}
-        <div className="lg:col-span-3 retro-box overflow-hidden">
-          <div className="retro-panel-header px-4 py-2.5 flex items-center justify-between border-b border-[#731922]">
+        <div className="lg:col-span-3 retro-box flex flex-col min-h-0 overflow-hidden">
+          <div className="retro-panel-header px-4 py-2 flex items-center justify-between border-b border-[#731922] shrink-0">
             <h2 className="font-roman text-xs font-bold text-white tracking-wide flex items-center gap-2">
               <Trophy size={14} className="text-[#d4af37]" />
               <span>TAVOLA UFFICIALE · {currentLeague?.nome.toUpperCase()}</span>
@@ -126,9 +127,9 @@ export const LeagueTableScreen: React.FC<LeagueTableScreenProps> = ({
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full text-left text-xs border-collapse">
-              <thead>
+              <thead className="sticky top-0 z-10">
                 <tr className="text-[10px] text-[#cbd5e1] uppercase font-roman border-b border-[#521016] bg-[#2b080b]">
                   <th className="py-2 px-3 w-8 text-center">POS</th>
                   <th className="py-2 px-3">SQUADRA D'HARPASTUM</th>
@@ -173,9 +174,17 @@ export const LeagueTableScreen: React.FC<LeagueTableScreenProps> = ({
                         </span>
                       </td>
                       <td className="py-2.5 px-3 font-sans">
-                        <span className="font-semibold text-white flex items-center gap-1.5">
-                          <span>{row.clubNome}</span>
-                          {isUser && <span className="text-[10px] text-[#facc15] font-roman">(Tua Fazione)</span>}
+                        <span className="font-semibold text-white flex items-center gap-2">
+                          {career.clubs[row.clubId] && (
+                            <AthleteJerseyBadge
+                              primary={career.clubs[row.clubId].colori?.primary || '#800020'}
+                              secondary={career.clubs[row.clubId].colori?.secondary || '#d4af37'}
+                              outline="#fef08a"
+                              size="xs"
+                            />
+                          )}
+                          <span className="truncate">{row.clubNome}</span>
+                          {isUser && <span className="text-[10px] text-[#facc15] font-roman shrink-0">(Tua Fazione)</span>}
                         </span>
                       </td>
                       <td className="py-2.5 px-2 text-center">{row.partiteGiocate}</td>
@@ -217,7 +226,7 @@ export const LeagueTableScreen: React.FC<LeagueTableScreenProps> = ({
           </div>
 
           {/* Legenda Zone Classifica */}
-          <div className="p-3 bg-[#240507] border-t border-[#731922] flex flex-wrap items-center justify-between text-[11px] text-[#cbd5e1] gap-3">
+          <div className="px-3 py-2 bg-[#240507] border-t border-[#731922] flex flex-wrap items-center justify-between text-[11px] text-[#cbd5e1] gap-2 shrink-0">
             <div className="flex items-center gap-4 flex-wrap">
               {isTopTier ? (
                 <>
@@ -248,16 +257,16 @@ export const LeagueTableScreen: React.FC<LeagueTableScreenProps> = ({
         </div>
 
         {/* Top Scorer Leaderboard (1 Col) */}
-        <div className="retro-box p-4 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-1.5 pb-2 border-b border-[#731922] mb-3">
+        <div className="retro-box p-3 flex flex-col justify-between min-h-0 overflow-hidden">
+          <div className="flex flex-col flex-1 min-h-0">
+            <div className="flex items-center gap-1.5 pb-2 border-b border-[#731922] mb-2.5 shrink-0">
               <Award size={14} className="text-[#d4af37]" />
               <h3 className="font-roman text-xs font-bold text-[#d4af37]">
                 MIGLIORI MARCATORI DI META
               </h3>
             </div>
 
-            <div className="space-y-1.5 font-data text-xs max-h-[400px] overflow-y-auto pr-1">
+            <div className="space-y-1.5 font-data text-xs flex-1 min-h-0 overflow-y-auto pr-1">
               {topScorers.map((p, idx) => {
                 const club = career.clubs[p.clubId];
                 return (
@@ -270,6 +279,14 @@ export const LeagueTableScreen: React.FC<LeagueTableScreenProps> = ({
                       <span className="text-[10px] text-[#cbd5e1] w-4 font-bold">
                         #{idx + 1}
                       </span>
+                      {club && (
+                        <AthleteJerseyBadge
+                          primary={club.colori?.primary || '#800020'}
+                          secondary={club.colori?.secondary || '#d4af37'}
+                          outline="#fef08a"
+                          size="xs"
+                        />
+                      )}
                       <div>
                         <div className="font-semibold text-white group-hover:text-[#facc15]">
                           {p.nome} {p.cognome}
@@ -293,8 +310,8 @@ export const LeagueTableScreen: React.FC<LeagueTableScreenProps> = ({
             </div>
           </div>
 
-          <div className="mt-3 pt-2 border-t border-[#731922] text-[10px] text-[#cbd5e1] text-center font-roman">
-            L'Alloro del Capocannoniere viene assegnato alle Idi d'Estate
+          <div className="mt-2 pt-2 border-t border-[#731922] text-[10px] text-[#cbd5e1] text-center font-roman shrink-0">
+            L'Alloro del Capo-Incursore viene assegnato alle Idi d'Estate
           </div>
         </div>
       </div>

@@ -45,12 +45,16 @@ interface TransferMarketScreenProps {
   career: CareerSave;
   onSelectPlayer: (player: Player) => void;
   onUpdateCareer: (career: CareerSave) => void;
+  initialOfferPlayer?: Player | null;
+  onClearInitialOfferPlayer?: () => void;
 }
 
 export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
   career,
   onSelectPlayer,
-  onUpdateCareer
+  onUpdateCareer,
+  initialOfferPlayer,
+  onClearInitialOfferPlayer
 }) => {
   const userClub = career.clubs[career.userClubId];
 
@@ -61,6 +65,8 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('TUTTI');
   const [selectedLeagueFilter, setSelectedLeagueFilter] = useState<string>('ALL');
+  const [selectedClubFilter, setSelectedClubFilter] = useState<string>('ALL');
+  const [selectedOvrFilter, setSelectedOvrFilter] = useState<string>('ALL');
   const [selectedAgeFilter, setSelectedAgeFilter] = useState<string>('ALL');
   const [onlyListed, setOnlyListed] = useState<boolean>(true);
   const [sortBy, setSortBy] = useState<'OVR_DESC' | 'PRICE_ASC' | 'PRICE_DESC' | 'AGE_ASC'>('OVR_DESC');
@@ -69,6 +75,7 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
 
   // Real Multi-Stage Negotiation Session State
   const [negotiationSession, setNegotiationSession] = useState<NegotiationSession | null>(null);
+  const [negotiationError, setNegotiationError] = useState<string | null>(null);
   const [feeInput, setFeeInput] = useState<number>(0);
   const [wageInput, setWageInput] = useState<number>(0);
   const [yearsInput, setYearsInput] = useState<number>(3);
@@ -94,6 +101,19 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
   }, [negotiationSession?.dialogueHistory.length]);
 
   const leaguesList = Object.values(career.leagues);
+
+  // Clubs available in Squadra filter (scoped to selectedLeagueFilter if chosen)
+  const clubsForFilter = useMemo(() => {
+    return Object.values(career.clubs)
+      .filter(c => {
+        if (c.id === career.userClubId) return false;
+        if (selectedLeagueFilter !== 'ALL' && selectedLeagueFilter !== 'FREE_AGENTS') {
+          return c.leagueId === selectedLeagueFilter;
+        }
+        return true;
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [career.clubs, career.userClubId, selectedLeagueFilter]);
 
   // Filter pool excluding user's current players
   const allOtherPlayers = useMemo(() => {
@@ -138,6 +158,24 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
           if (!club || club.leagueId !== selectedLeagueFilter) return false;
         }
 
+        if (selectedClubFilter !== 'ALL') {
+          if (selectedClubFilter === 'FREE_AGENTS') {
+            if (p.clubId) return false;
+          } else if (p.clubId !== selectedClubFilter) {
+            return false;
+          }
+        }
+
+        if (selectedOvrFilter !== 'ALL') {
+          const ovr = p.valoreGenerale;
+          if (selectedOvrFilter === '85_PLUS' && ovr < 85) return false;
+          if (selectedOvrFilter === '80_PLUS' && ovr < 80) return false;
+          if (selectedOvrFilter === '75_PLUS' && ovr < 75) return false;
+          if (selectedOvrFilter === '70_PLUS' && ovr < 70) return false;
+          if (selectedOvrFilter === '65_74' && (ovr < 65 || ovr > 74)) return false;
+          if (selectedOvrFilter === 'UNDER_65' && ovr >= 65) return false;
+        }
+
         if (selectedAgeFilter === 'U21' && p.eta > 21) return false;
         if (selectedAgeFilter === 'PRIME' && (p.eta < 22 || p.eta > 28)) return false;
         if (selectedAgeFilter === 'VETERAN' && p.eta < 29) return false;
@@ -146,7 +184,8 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
           const query = searchTerm.toLowerCase();
           const fullName = `${p.nome} ${p.cognome}`.toLowerCase();
           const nat = p.nazionalita.toLowerCase();
-          if (!fullName.includes(query) && !nat.includes(query)) return false;
+          const clubName = (p.clubId && career.clubs[p.clubId]?.nome.toLowerCase()) || '';
+          if (!fullName.includes(query) && !nat.includes(query) && !clubName.includes(query)) return false;
         }
 
         return true;
@@ -158,7 +197,7 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
         if (sortBy === 'AGE_ASC') return a.eta - b.eta;
         return 0;
       });
-  }, [allOtherPlayers, onlyListed, selectedRole, selectedLeagueFilter, selectedAgeFilter, searchTerm, sortBy, career.clubs]);
+  }, [allOtherPlayers, onlyListed, selectedRole, selectedLeagueFilter, selectedClubFilter, selectedOvrFilter, selectedAgeFilter, searchTerm, sortBy, career.clubs]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredPlayers.length / pageSize));
@@ -182,6 +221,7 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
     const seller = player.clubId ? career.clubs[player.clubId] : null;
     const session = initiateNegotiationSession(player, userClub, seller, career.currentDateText);
     setNegotiationSession(session);
+    setNegotiationError(null);
     setFeeInput(session.targetFee);
     setWageInput(session.targetWage);
     setYearsInput(player.eta >= 30 ? 2 : 3);
@@ -190,16 +230,35 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
     audio.playClick();
   };
 
-  const handleSendClubFee = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!negotiationSession) return;
+  useEffect(() => {
+    if (initialOfferPlayer && initialOfferPlayer.clubId !== career.userClubId) {
+      setActiveTab('BUY');
+      handleStartRealNegotiation(initialOfferPlayer);
+      onClearInitialOfferPlayer?.();
+    }
+  }, [initialOfferPlayer]);
 
-    if (feeInput > userClub.saldoCassa) {
-      triggerBanner(`Fondi insufficienti: la cassa dispone di ${userClub.saldoCassa.toLocaleString()} HS, hai offerto ${feeInput.toLocaleString()} HS.`);
+  const handleSendClubFee = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!negotiationSession) return;
+    setNegotiationError(null);
+
+    const sanitizedFee = Math.round(Number(feeInput));
+    if (!Number.isFinite(sanitizedFee) || sanitizedFee <= 0) {
+      const msg = 'Inserisci un importo valido in Sesterzi (HS) maggiore di 0 per formulare l’offerta.';
+      setNegotiationError(msg);
+      triggerBanner(msg);
       return;
     }
 
-    const updated = submitClubFeeNegotiation(negotiationSession, feeInput, career.currentDateText);
+    if (sanitizedFee > userClub.saldoCassa) {
+      const msg = `Fondi insufficienti in erario: la cassa dispone di ${userClub.saldoCassa.toLocaleString()} HS, hai offerto ${sanitizedFee.toLocaleString()} HS.`;
+      setNegotiationError(msg);
+      triggerBanner(msg);
+      return;
+    }
+
+    const updated = submitClubFeeNegotiation(negotiationSession, sanitizedFee, career.currentDateText);
     setNegotiationSession(updated);
 
     if (updated.stage === 'PLAYER_TERMS') {
@@ -212,25 +271,43 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
   };
 
   const handleAcceptClubCounter = () => {
-    if (!negotiationSession) return;
+    if (!negotiationSession || !negotiationSession.clubCounterFee) return;
+    setNegotiationError(null);
+    if (negotiationSession.clubCounterFee > userClub.saldoCassa) {
+      const msg = `Fondi insufficienti in erario per accettare la controfferta (${negotiationSession.clubCounterFee.toLocaleString()} HS richiesti, cassa ${userClub.saldoCassa.toLocaleString()} HS).`;
+      setNegotiationError(msg);
+      triggerBanner(msg);
+      return;
+    }
     const updated = acceptClubCounterOffer(negotiationSession, career.currentDateText);
     setNegotiationSession(updated);
     audio.playTone(440, 0.2);
   };
 
-  const handleSendPlayerTerms = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendPlayerTerms = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!negotiationSession) return;
+    setNegotiationError(null);
+
+    const sanitizedWage = Math.round(Number(wageInput));
+    if (!Number.isFinite(sanitizedWage) || sanitizedWage < 500) {
+      const msg = 'Inserisci un ingaggio settimanale valido di almeno 500 HS/settimana.';
+      setNegotiationError(msg);
+      triggerBanner(msg);
+      return;
+    }
 
     const totalCashNeeded = (negotiationSession.agreedFee || 0) + bonusInput;
     if (totalCashNeeded > userClub.saldoCassa) {
-      triggerBanner(`Fondi insufficienti per coprire cartellino e premio alla firma (${totalCashNeeded.toLocaleString()} HS richiesti).`);
+      const msg = `Fondi insufficienti per coprire cartellino e premio alla firma (${totalCashNeeded.toLocaleString()} HS richiesti).`;
+      setNegotiationError(msg);
+      triggerBanner(msg);
       return;
     }
 
     const updated = submitPlayerTermsNegotiation(
       negotiationSession,
-      wageInput,
+      sanitizedWage,
       yearsInput,
       bonusInput,
       releaseClauseInput > 0 ? releaseClauseInput : undefined,
@@ -249,6 +326,14 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
 
   const handleAcceptPlayerCounter = () => {
     if (!negotiationSession) return;
+    setNegotiationError(null);
+    const totalNeeded = (negotiationSession.agreedFee || 0) + (negotiationSession.playerCounterBonus || 0);
+    if (totalNeeded > userClub.saldoCassa) {
+      const msg = `Fondi insufficienti per premio alla firma e cartellino (${totalNeeded.toLocaleString()} HS richiesti).`;
+      setNegotiationError(msg);
+      triggerBanner(msg);
+      return;
+    }
     const updated = acceptPlayerCounterOffer(negotiationSession, career.currentDateText);
     setNegotiationSession(updated);
     audio.playGoal();
@@ -256,15 +341,18 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
 
   const handleFinalizeSigning = () => {
     if (!negotiationSession) return;
+    setNegotiationError(null);
 
     try {
-      const { updatedCareer, transfer } = finalizeNegotiation(negotiationSession, career);
+      const { updatedCareer } = finalizeNegotiation(negotiationSession, career);
       audio.playGoal();
       onUpdateCareer(updatedCareer);
       setNegotiationSession(null);
       triggerBanner(`Trattativa ratificata dal Senato! ${negotiationSession.player.nome} ${negotiationSession.player.cognome} è ufficialmente tesserato con ${userClub.nome}!`);
     } catch (err: any) {
-      triggerBanner(err.message || 'Errore nella ratifica del trasferimento.');
+      const msg = err.message || 'Errore nella ratifica del trasferimento.';
+      setNegotiationError(msg);
+      triggerBanner(msg);
     }
   };
 
@@ -443,19 +531,19 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
   };
 
   return (
-    <div className="space-y-4 select-none">
+    <div className="h-full flex flex-col gap-2.5 min-h-0 overflow-hidden select-none">
       {/* Toast / Notification Banner */}
       {feedbackBanner && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-[#162235] border-2 border-[#d4af37] text-[#f1f5f9] px-4 py-2 text-xs font-semibold rounded-xs shadow-2xl animate-in fade-in flex items-center gap-2">
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[70] bg-[#162235] border-2 border-[#d4af37] text-[#f1f5f9] px-4 py-2 text-xs font-semibold rounded-xs shadow-2xl animate-in fade-in flex items-center gap-2">
           <Sparkles size={16} className="text-[#d4af37] shrink-0" />
           <span>{feedbackBanner}</span>
         </div>
       )}
 
       {/* Top Treasury and Hub Header */}
-      <div className="retro-box p-3 flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Coins size={20} className="text-[#38bdf8]" />
+      <div className="retro-box p-2.5 flex flex-col md:flex-row items-center justify-between gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <Coins size={18} className="text-[#38bdf8] shrink-0" />
           <div>
             <h1 className="font-roman text-sm font-bold text-white tracking-wide">
               FORO DEGLI ATLETI & MERCATO DELL'IMPERO · 182ª OLIMPIADE
@@ -473,10 +561,10 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
         </div>
 
         {/* 3 Main Tabs Switcher */}
-        <div className="flex items-center gap-1.5 bg-[#0c1017] p-1 border border-[#222b3d] rounded-xs text-xs">
+        <div className="flex items-center gap-1.5 bg-[#0c1017] p-1 border border-[#222b3d] rounded-xs text-xs shrink-0">
           <button
             onClick={() => setActiveTab('BUY')}
-            className={`px-3 py-1 font-roman font-bold rounded-xs transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1 font-roman font-bold rounded-xs transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'BUY'
                 ? 'bg-[#1e2738] text-[#d4af37] border border-[#d4af37]/40 shadow-xs'
                 : 'text-[#94a3b8] hover:text-white'
@@ -488,7 +576,7 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
 
           <button
             onClick={() => setActiveTab('SELL')}
-            className={`px-3 py-1 font-roman font-bold rounded-xs transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1 font-roman font-bold rounded-xs transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'SELL'
                 ? 'bg-[#1e2738] text-[#d4af37] border border-[#d4af37]/40 shadow-xs'
                 : 'text-[#94a3b8] hover:text-white'
@@ -500,7 +588,7 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
 
           <button
             onClick={() => setActiveTab('OFFERS')}
-            className={`px-3 py-1 font-roman font-bold rounded-xs transition-colors cursor-pointer flex items-center gap-1.5 relative ${
+            className={`px-3 py-1 font-roman font-bold rounded-xs transition-colors cursor-pointer flex items-center gap-1.5 relative whitespace-nowrap ${
               activeTab === 'OFFERS'
                 ? 'bg-[#1e2738] text-[#d4af37] border border-[#d4af37]/40 shadow-xs'
                 : 'text-[#94a3b8] hover:text-white'
@@ -521,9 +609,9 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
       {/* TAB 1: ACQUISTI & OSSERVATORI                                             */}
       {/* ========================================================================= */}
       {activeTab === 'BUY' && (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-2.5 flex-1 min-h-0 overflow-hidden">
           {/* Filters Bar */}
-          <div className="retro-box p-3 space-y-2.5">
+          <div className="retro-box p-2.5 space-y-2 shrink-0">
             <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
               <div className="relative flex-1">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
@@ -549,7 +637,7 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 text-xs">
               <select
                 value={selectedRole}
                 onChange={e => {
@@ -568,7 +656,9 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
               <select
                 value={selectedLeagueFilter}
                 onChange={e => {
-                  setSelectedLeagueFilter(e.target.value);
+                  const nextLeague = e.target.value;
+                  setSelectedLeagueFilter(nextLeague);
+                  setSelectedClubFilter('ALL');
                   setCurrentPage(1);
                 }}
                 className="bg-[#111622] border border-[#232d3f] text-white px-2 py-1.5 rounded-xs outline-none focus:border-[#d4af37] cursor-pointer"
@@ -580,6 +670,44 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
                     {l.nome}
                   </option>
                 ))}
+              </select>
+
+              <select
+                value={selectedClubFilter}
+                onChange={e => {
+                  const nextClub = e.target.value;
+                  setSelectedClubFilter(nextClub);
+                  if (nextClub !== 'ALL' && onlyListed) {
+                    setOnlyListed(false);
+                  }
+                  setCurrentPage(1);
+                }}
+                className="bg-[#111622] border border-[#232d3f] text-white px-2 py-1.5 rounded-xs outline-none focus:border-[#d4af37] cursor-pointer"
+              >
+                <option value="ALL">Tutte le Squadre ({clubsForFilter.length})</option>
+                <option value="FREE_AGENTS">Svincolati (Senza Squadra)</option>
+                {clubsForFilter.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={selectedOvrFilter}
+                onChange={e => {
+                  setSelectedOvrFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-[#111622] border border-[#232d3f] text-white px-2 py-1.5 rounded-xs outline-none focus:border-[#d4af37] cursor-pointer"
+              >
+                <option value="ALL">Tutti gli Overall (OVR)</option>
+                <option value="85_PLUS">Campioni (85+ OVR)</option>
+                <option value="80_PLUS">Titolari Top (80+ OVR)</option>
+                <option value="75_PLUS">Esperti (75+ OVR)</option>
+                <option value="70_PLUS">Solidi (70+ OVR)</option>
+                <option value="65_74">Fascia Media (65-74)</option>
+                <option value="UNDER_65">Promesse (&lt; 65 OVR)</option>
               </select>
 
               <select
@@ -625,6 +753,8 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
                   setSearchTerm('');
                   setSelectedRole('TUTTI');
                   setSelectedLeagueFilter('ALL');
+                  setSelectedClubFilter('ALL');
+                  setSelectedOvrFilter('ALL');
                   setSelectedAgeFilter('ALL');
                   setOnlyListed(false);
                   setSortBy('OVR_DESC');
@@ -638,8 +768,8 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
           </div>
 
           {/* Table */}
-          <div className="retro-box overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="retro-box flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="retro-panel-header text-[10px] text-[#94a3b8] uppercase font-roman border-b border-[#252e42]">
@@ -755,7 +885,7 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="retro-panel-header px-4 py-2 flex items-center justify-between border-t border-[#252e42] text-xs font-data">
+              <div className="retro-panel-header px-4 py-1.5 flex items-center justify-between border-t border-[#252e42] text-xs font-data shrink-0">
                 <span className="text-[#94a3b8]">
                   Pagina <span className="text-white font-bold">{safeCurrentPage}</span> di{' '}
                   <span className="text-white font-bold">{totalPages}</span> ({filteredPlayers.length} atleti totali)
@@ -787,8 +917,8 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
       {/* TAB 2: LE TUE CESSIONI                                                    */}
       {/* ========================================================================= */}
       {activeTab === 'SELL' && (
-        <div className="space-y-3">
-          <div className="retro-box p-3 bg-[#111827] flex items-center justify-between gap-3 text-xs">
+        <div className="flex flex-col gap-2.5 flex-1 min-h-0 overflow-hidden">
+          <div className="retro-box p-2.5 bg-[#111827] flex items-center justify-between gap-3 text-xs shrink-0">
             <div className="flex items-center gap-2.5">
               <Tag size={18} className="text-[#d4af37] shrink-0" />
               <div>
@@ -806,8 +936,8 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
             </div>
           </div>
 
-          <div className="retro-box overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="retro-box flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="retro-panel-header text-[10px] text-[#94a3b8] uppercase font-roman border-b border-[#252e42]">
@@ -926,9 +1056,9 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
       {/* TAB 3: OFFERTE RICEVUTE & STORICO                                         */}
       {/* ========================================================================= */}
       {activeTab === 'OFFERS' && (
-        <div className="space-y-4">
-          <div className="retro-box overflow-hidden">
-            <div className="retro-panel-header px-4 py-2.5 flex items-center justify-between border-b border-[#252e42]">
+        <div className="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
+          <div className="retro-box flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="retro-panel-header px-4 py-2 flex items-center justify-between border-b border-[#252e42] shrink-0">
               <div className="flex items-center gap-2">
                 <Send size={15} className="text-[#38bdf8]" />
                 <h3 className="font-roman text-sm font-bold text-white tracking-wide">
@@ -940,7 +1070,7 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
               </span>
             </div>
 
-            <div className="p-3">
+            <div className="p-3 flex-1 min-h-0 overflow-y-auto">
               {(career.incomingOffers || []).length === 0 ? (
                 <div className="py-8 text-center text-[#94a3b8] italic text-xs space-y-2">
                   <p>Nessuna offerta registrata al momento.</p>
@@ -1027,8 +1157,8 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
             </div>
           </div>
 
-          <div className="retro-box overflow-hidden">
-            <div className="retro-panel-header px-4 py-2.5 flex items-center justify-between border-b border-[#252e42]">
+          <div className="retro-box flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="retro-panel-header px-4 py-2 flex items-center justify-between border-b border-[#252e42] shrink-0">
               <div className="flex items-center gap-2">
                 <Coins size={15} className="text-[#d4af37]" />
                 <h3 className="font-roman text-sm font-bold text-white tracking-wide">
@@ -1040,7 +1170,7 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
               </span>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="flex-1 min-h-0 overflow-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="retro-panel-header text-[10px] text-[#94a3b8] uppercase font-roman border-b border-[#252e42]">
@@ -1304,7 +1434,14 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
                     </div>
                   )}
 
-                  <form onSubmit={handleSendClubFee} className="space-y-3">
+                  {negotiationError && (
+                    <div className="p-2.5 bg-[#2a1215] border border-[#ef4444] text-[#fca5a5] text-[11px] rounded-xs flex items-center gap-2">
+                      <AlertCircle size={14} className="text-[#ef4444] shrink-0" />
+                      <span>{negotiationError}</span>
+                    </div>
+                  )}
+
+                  <form noValidate onSubmit={handleSendClubFee} className="space-y-3">
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
                         <label className="text-[#cbd5e1] font-roman">
@@ -1316,48 +1453,67 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
                       </div>
                       <input
                         type="number"
-                        min="50000"
-                        step="25000"
-                        value={feeInput}
-                        onChange={e => setFeeInput(Number(e.target.value))}
-                        className="w-full bg-[#0a0d14] border border-[#232d3f] px-3 py-1.5 text-white font-data rounded-xs focus:border-[#d4af37] outline-none"
-                        required
+                        min={0}
+                        step="any"
+                        value={feeInput === 0 ? '' : feeInput}
+                        onChange={e => {
+                          setNegotiationError(null);
+                          const val = e.target.value === '' ? 0 : Math.max(0, Math.round(Number(e.target.value)));
+                          setFeeInput(Number.isFinite(val) ? val : 0);
+                        }}
+                        placeholder="Inserisci l'offerta in Sesterzi..."
+                        className="w-full bg-[#0a0d14] border border-[#232d3f] px-3 py-1.5 text-white font-data rounded-xs focus:border-[#d4af37] outline-none select-text"
                       />
 
                       {/* Quick adjustment buttons */}
-                      <div className="flex items-center gap-1.5 mt-1.5">
+                      <div className="flex items-center flex-wrap gap-1.5 mt-1.5">
                         <button
                           type="button"
-                          onClick={() => setFeeInput(prev => Math.max(50000, prev - 100000))}
-                          className="px-2 py-0.5 bg-[#1b2333] hover:bg-[#252f44] text-[#94a3b8] hover:text-white rounded-xs text-[10px] font-data"
+                          onClick={() => {
+                            setNegotiationError(null);
+                            setFeeInput(prev => Math.max(10000, prev - 100000));
+                          }}
+                          className="px-2 py-0.5 bg-[#1b2333] hover:bg-[#252f44] text-[#94a3b8] hover:text-white rounded-xs text-[10px] font-data cursor-pointer"
                         >
                           -100k
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFeeInput(prev => Math.max(50000, prev - 25000))}
-                          className="px-2 py-0.5 bg-[#1b2333] hover:bg-[#252f44] text-[#94a3b8] hover:text-white rounded-xs text-[10px] font-data"
+                          onClick={() => {
+                            setNegotiationError(null);
+                            setFeeInput(prev => Math.max(10000, prev - 25000));
+                          }}
+                          className="px-2 py-0.5 bg-[#1b2333] hover:bg-[#252f44] text-[#94a3b8] hover:text-white rounded-xs text-[10px] font-data cursor-pointer"
                         >
                           -25k
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFeeInput(session => session)}
-                          className="px-2 py-0.5 bg-[#1b2333] hover:bg-[#252f44] text-[#d4af37] rounded-xs text-[10px] font-data"
+                          onClick={() => {
+                            setNegotiationError(null);
+                            setFeeInput(negotiationSession.targetFee);
+                          }}
+                          className="px-2 py-0.5 bg-[#1b2333] hover:bg-[#252f44] text-[#d4af37] rounded-xs text-[10px] font-data cursor-pointer"
                         >
                           Valore ({negotiationSession.targetFee.toLocaleString()} HS)
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFeeInput(prev => prev + 25000)}
-                          className="px-2 py-0.5 bg-[#1b2333] hover:bg-[#252f44] text-[#94a3b8] hover:text-white rounded-xs text-[10px] font-data"
+                          onClick={() => {
+                            setNegotiationError(null);
+                            setFeeInput(prev => prev + 25000);
+                          }}
+                          className="px-2 py-0.5 bg-[#1b2333] hover:bg-[#252f44] text-[#94a3b8] hover:text-white rounded-xs text-[10px] font-data cursor-pointer"
                         >
                           +25k
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFeeInput(prev => prev + 100000)}
-                          className="px-2 py-0.5 bg-[#1b2333] hover:bg-[#252f44] text-[#94a3b8] hover:text-white rounded-xs text-[10px] font-data"
+                          onClick={() => {
+                            setNegotiationError(null);
+                            setFeeInput(prev => prev + 100000);
+                          }}
+                          className="px-2 py-0.5 bg-[#1b2333] hover:bg-[#252f44] text-[#94a3b8] hover:text-white rounded-xs text-[10px] font-data cursor-pointer"
                         >
                           +100k
                         </button>
@@ -1422,7 +1578,14 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
                     </div>
                   )}
 
-                  <form onSubmit={handleSendPlayerTerms} className="space-y-3">
+                  {negotiationError && (
+                    <div className="p-2.5 bg-[#2a1215] border border-[#ef4444] text-[#fca5a5] text-[11px] rounded-xs flex items-center gap-2">
+                      <AlertCircle size={14} className="text-[#ef4444] shrink-0" />
+                      <span>{negotiationError}</span>
+                    </div>
+                  )}
+
+                  <form noValidate onSubmit={handleSendPlayerTerms} className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {/* Weekly Wage */}
                       <div>
@@ -1431,12 +1594,15 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
                         </label>
                         <input
                           type="number"
-                          min="500"
-                          step="250"
-                          value={wageInput}
-                          onChange={e => setWageInput(Number(e.target.value))}
-                          className="w-full bg-[#0a0d14] border border-[#232d3f] px-3 py-1.5 text-white font-data rounded-xs focus:border-[#d4af37] outline-none"
-                          required
+                          min={0}
+                          step="any"
+                          value={wageInput === 0 ? '' : wageInput}
+                          onChange={e => {
+                            setNegotiationError(null);
+                            const val = e.target.value === '' ? 0 : Math.max(0, Math.round(Number(e.target.value)));
+                            setWageInput(Number.isFinite(val) ? val : 0);
+                          }}
+                          className="w-full bg-[#0a0d14] border border-[#232d3f] px-3 py-1.5 text-white font-data rounded-xs focus:border-[#d4af37] outline-none select-text"
                         />
                         <span className="text-[10px] text-[#64748b] block mt-0.5">
                           Attuale: {(negotiationSession.player.contratto?.stipendioSettimanale || 15000).toLocaleString()} HS/sett.
@@ -1485,11 +1651,14 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
                         </label>
                         <input
                           type="number"
-                          min="0"
-                          step="100000"
-                          value={releaseClauseInput}
-                          onChange={e => setReleaseClauseInput(Number(e.target.value))}
-                          className="w-full bg-[#0a0d14] border border-[#232d3f] px-3 py-1.5 text-white font-data rounded-xs focus:border-[#d4af37] outline-none"
+                          min={0}
+                          step="any"
+                          value={releaseClauseInput === 0 ? '' : releaseClauseInput}
+                          onChange={e => {
+                            const val = e.target.value === '' ? 0 : Math.max(0, Math.round(Number(e.target.value)));
+                            setReleaseClauseInput(Number.isFinite(val) ? val : 0);
+                          }}
+                          className="w-full bg-[#0a0d14] border border-[#232d3f] px-3 py-1.5 text-white font-data rounded-xs focus:border-[#d4af37] outline-none select-text"
                         />
                       </div>
                     </div>
@@ -1524,7 +1693,7 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
                         ACCORDO TOTALE RAGGIUNTO & RATIFICATO!
                       </h4>
                       <span className="text-[11px] text-[#a7f3d0]">
-                        Il club e il calciatore hanno formalizzato ogni clausola contrattuale.
+                        Il club e l'atleta hanno formalizzato ogni clausola contrattuale.
                       </span>
                     </div>
                   </div>
@@ -1627,19 +1796,18 @@ export const TransferMarketScreen: React.FC<TransferMarketScreenProps> = ({
               <strong className="text-white">{editingPricePlayer.nome} {editingPricePlayer.cognome}</strong>.
             </p>
 
-            <form onSubmit={handleSaveAskingPrice} className="space-y-3">
+            <form noValidate onSubmit={handleSaveAskingPrice} className="space-y-3">
               <div>
                 <label className="block text-[#cbd5e1] mb-1 font-roman">
                   Nuovo Prezzo Richiesto (HS):
                 </label>
                 <input
                   type="number"
-                  min="10000"
-                  step="10000"
-                  value={newAskingPrice}
-                  onChange={e => setNewAskingPrice(Number(e.target.value))}
-                  className="w-full bg-[#111622] border border-[#232d3f] px-3 py-1.5 text-white font-data rounded-xs focus:border-[#d4af37] outline-none"
-                  required
+                  min={10000}
+                  step="any"
+                  value={newAskingPrice === 0 ? '' : newAskingPrice}
+                  onChange={e => setNewAskingPrice(Math.max(0, Math.round(Number(e.target.value) || 0)))}
+                  className="w-full bg-[#111622] border border-[#232d3f] px-3 py-1.5 text-white font-data rounded-xs focus:border-[#d4af37] outline-none select-text"
                 />
               </div>
 

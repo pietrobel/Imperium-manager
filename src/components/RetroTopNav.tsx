@@ -1,6 +1,6 @@
 import React from 'react';
 import { RetroButton } from './RetroButton';
-import { Volume2, VolumeX, Save, ArrowLeft } from 'lucide-react';
+import { Volume2, VolumeX, Save, ArrowLeft, Music } from 'lucide-react';
 import { audio } from '../services/audioService';
 
 export type ScreenId =
@@ -25,8 +25,11 @@ interface RetroTopNavProps {
   isSimulating: boolean;
   soundEnabled: boolean;
   onToggleSound: () => void;
+  musicEnabled?: boolean;
+  onToggleMusic?: () => void;
   onQuickSave: () => void;
   onBackToMainMenu?: () => void;
+  onGoBack?: () => void;
   hasActiveCareer?: boolean;
 }
 
@@ -40,8 +43,11 @@ export const RetroTopNav: React.FC<RetroTopNavProps> = ({
   isSimulating,
   soundEnabled,
   onToggleSound,
+  musicEnabled = true,
+  onToggleMusic,
   onQuickSave,
   onBackToMainMenu,
+  onGoBack,
   hasActiveCareer = true
 }) => {
   const navItems: { id: ScreenId; label: string }[] = [
@@ -63,27 +69,36 @@ export const RetroTopNav: React.FC<RetroTopNavProps> = ({
     : navItems.filter(item => item.id === 'HISTORY' || item.id === 'SETTINGS');
 
   return (
-    <header className="w-full bg-[#3d0b10] border-b border-[#731922] select-none text-xs sticky top-0 z-40 shadow-xl">
-      {/* Upper Status Ribbon in Rosso Pompeiano & Oro */}
-      <div className="bg-[#240507] border-b border-[#521016] px-4 py-1 flex items-center justify-between text-[#cbd5e1]">
-        <div className="flex items-center gap-3">
+    <header className="w-full bg-[#3d0b10] border-b border-[#731922] select-none text-xs shrink-0 z-40 shadow-xl">
+      {/* Upper Status Ribbon */}
+      <div className="bg-[#240507] border-b border-[#521016] px-3 sm:px-4 py-1 flex items-center justify-between text-[#cbd5e1] gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {onGoBack && (
+            <button
+              onClick={onGoBack}
+              title="Torna Indietro"
+              className="flex items-center gap-1 font-roman text-[10px] font-bold px-2 py-0.5 bg-[#63141c] hover:bg-[#801b25] text-[#fef08a] border border-[#d4af37]/60 rounded-xs transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <ArrowLeft size={11} />
+              <span>Indietro</span>
+            </button>
+          )}
           {onBackToMainMenu && (
             <button
               onClick={onBackToMainMenu}
               title="Torna al Menu Principale"
-              className="flex items-center gap-1 font-roman text-[10px] font-bold px-2 py-0.5 bg-[#420d11] hover:bg-[#63141c] text-[#facc15] border border-[#d4af37]/40 rounded-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1 font-roman text-[10px] font-bold px-2 py-0.5 bg-[#420d11] hover:bg-[#63141c] text-[#facc15] border border-[#d4af37]/40 rounded-xs transition-colors cursor-pointer whitespace-nowrap shrink-0"
             >
-              <ArrowLeft size={11} />
               <span>Menu</span>
             </button>
           )}
-          <span className="text-[#d4af37] font-semibold font-roman tracking-wide">{clubName}</span>
-          <span className="text-[#64748b]">|</span>
-          <span className="font-data text-[#e2e8f0]">{dateText}</span>
+          <span className="text-[#d4af37] font-semibold font-roman tracking-wide truncate">{clubName}</span>
+          <span className="text-[#64748b] hidden sm:inline">·</span>
+          <span className="font-data text-[#e2e8f0] hidden md:inline truncate">{dateText}</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
           {hasActiveCareer && (
-            <div className="flex items-center gap-1.5 font-data">
+            <div className="flex items-center gap-1.5 font-data whitespace-nowrap">
               <span className="text-[#94a3b8]">Erario:</span>
               <span className="text-[#facc15] font-bold">{treasuryHS.toLocaleString()} HS</span>
             </div>
@@ -92,10 +107,24 @@ export const RetroTopNav: React.FC<RetroTopNavProps> = ({
             <button
               onClick={onQuickSave}
               title="Salva Carriera nel Tabularium"
-              className="flex items-center gap-1 text-[#cbd5e1] hover:text-[#d4af37] transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[#cbd5e1] hover:text-[#d4af37] transition-colors cursor-pointer whitespace-nowrap"
             >
               <Save size={13} />
-              <span>Salva</span>
+              <span className="hidden sm:inline">Salva</span>
+            </button>
+          )}
+          {onToggleMusic && (
+            <button
+              onClick={onToggleMusic}
+              title={musicEnabled ? 'Disattiva Musica Antiqua' : 'Attiva Musica Antiqua'}
+              className={`flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
+                musicEnabled && soundEnabled ? 'text-[#facc15] hover:text-white' : 'text-[#64748b] hover:text-[#cbd5e1]'
+              }`}
+            >
+              <Music size={13} />
+              <span className="hidden lg:inline text-[10px] font-roman">
+                {musicEnabled && soundEnabled ? 'Musica ON' : 'Musica OFF'}
+              </span>
             </button>
           )}
           <button
@@ -109,19 +138,16 @@ export const RetroTopNav: React.FC<RetroTopNavProps> = ({
       </div>
 
       {/* Main 3-Zone Navigation Header */}
-      <div className="flex items-center justify-between gap-8 px-4 py-2 bg-gradient-to-b from-[#4d0f15] to-[#38090d]">
-        {/* Zone 1: Wordmark in Oro Imperiale */}
+      <div className="flex items-center justify-between gap-3 sm:gap-5 px-3 sm:px-4 py-1.5 bg-gradient-to-b from-[#4d0f15] to-[#38090d]">
+        {/* Zone 1: Wordmark */}
         <div className="flex items-center gap-2 shrink-0">
-          <span className="font-roman text-base font-black tracking-wider text-[#d4af37] drop-shadow-sm">
-            IMPERIUM MANAGER
-          </span>
-          <span className="font-roman text-[10px] text-[#cbd5e1] tracking-widest uppercase border border-[#7a1b24] px-1.5 py-0.5 rounded-xs bg-[#2b0709]">
-            {hasActiveCareer ? '182ª OLIMPIADE' : 'ARCHIVIO SENATORIO'}
+          <span className="font-roman text-sm sm:text-base font-black tracking-wider text-[#d4af37] drop-shadow-sm whitespace-nowrap">
+            MAGISTER LUDORUM
           </span>
         </div>
 
-        {/* Zone 2: Navigation Links in Oro e Argento */}
-        <nav className="flex items-center gap-1 overflow-x-auto py-0.5">
+        {/* Zone 2: Navigation Links */}
+        <nav className="flex items-center gap-1 overflow-x-auto py-0.5 min-w-0">
           {visibleNavItems.map(item => {
             const isActive = currentScreen === item.id;
             return (
@@ -131,7 +157,7 @@ export const RetroTopNav: React.FC<RetroTopNavProps> = ({
                   audio.playClick();
                   onNavigate(item.id);
                 }}
-                className={`px-3 py-1.5 text-xs font-roman font-bold rounded-xs whitespace-nowrap shrink-0 transition-all cursor-pointer border ${
+                className={`px-2.5 py-1 text-[11px] sm:text-xs font-roman font-bold rounded-xs whitespace-nowrap shrink-0 transition-all cursor-pointer border ${
                   isActive
                     ? 'bg-[#63141c] text-[#facc15] border-[#d4af37] shadow-md font-semibold'
                     : 'text-[#cbd5e1] border-transparent hover:text-white hover:bg-[#521118]'
@@ -143,24 +169,24 @@ export const RetroTopNav: React.FC<RetroTopNavProps> = ({
           })}
         </nav>
 
-        {/* Zone 3: Primary Action (Simulate Matchday OR Return to Menu) */}
+        {/* Zone 3: Primary Action */}
         <div className="flex items-center gap-2 shrink-0">
           {hasActiveCareer ? (
             <RetroButton
               variant="crimson"
-              size="md"
+              size="sm"
               disabled={isSimulating}
               onClick={onAdvanceDay}
-              className="font-bold tracking-wide uppercase px-4 shadow-lg border border-[#f87171] text-white"
+              className="font-bold tracking-wide uppercase px-3 py-1.5 shadow-lg border border-[#f87171] text-white whitespace-nowrap"
             >
-              {isSimulating ? 'Agone in corso...' : 'AVANTI (Simula Agone)'}
+              {isSimulating ? 'Agone in corso...' : 'Disputa Agone'}
             </RetroButton>
           ) : (
             <RetroButton
               variant="gold"
-              size="md"
+              size="sm"
               onClick={onBackToMainMenu}
-              className="font-bold tracking-wide uppercase px-3 shadow-lg flex items-center gap-1 text-xs"
+              className="font-bold tracking-wide uppercase px-3 py-1.5 shadow-lg flex items-center gap-1 text-xs whitespace-nowrap"
             >
               <ArrowLeft size={13} />
               <span>Menu Principale</span>

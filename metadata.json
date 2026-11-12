@@ -1,5 +1,5 @@
 {
-  "name": "Imperium Manager (50 a.C.)",
+  "name": "Magister Ludorum (50 a.C.)",
   "description": "Videogioco manageriale storico d'Harpastum ambientato nell'antichità romana (50 a.C.). Ispirato ai grandi classici manageriali PC degli anni '90.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

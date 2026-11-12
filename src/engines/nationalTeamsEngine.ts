@@ -183,30 +183,396 @@ export const OFFICIAL_NATIONAL_CIVILIZATIONS: NationalCivilization[] = [
 ];
 
 /**
- * Converte la nazionalità testuale del giocatore in ID Nazionale.
+ * Converte la nazionalità e la regione testuale dell'atleta in ID Nazionale.
+ * Evita collisioni di sottostringhe (es. "brITAnna" vs "ita", "daNUBIus" vs "nubi")
+ * e NON riversa più automaticamente gli stranieri o gli svincolati in nat_roma.
  */
-export function getNationalTeamIdForPlayer(player: Player): string {
-  const nat = (player.nazionalita || '').toLowerCase();
-  const reg = (player.regione || '').toLowerCase();
+export function getNationalTeamIdForPlayer(player: Player): string | null {
+  const nat = (player.nazionalita || '').toLowerCase().trim();
+  const reg = (player.regione || '').toLowerCase().trim();
+  const combined = `${nat} ${reg}`;
 
-  if (nat.includes('rom') || nat.includes('ita') || reg.includes('latium') || reg.includes('italia')) return 'nat_roma';
-  if (nat.includes('grec') || nat.includes('ell') || reg.includes('grecia') || reg.includes('atene') || reg.includes('sparta')) return 'nat_grecia';
-  if (nat.includes('egiz') || nat.includes('nil') || reg.includes('egitto') || reg.includes('alessandria')) return 'nat_egitto';
-  if (nat.includes('gall') || nat.includes('celt') || reg.includes('gallia')) return 'nat_gallia';
-  if (nat.includes('pun') || nat.includes('cart') || reg.includes('cartagine') || reg.includes('africa')) return 'nat_cartagine';
-  if (nat.includes('ibe') || nat.includes('hisp') || nat.includes('lusit') || reg.includes('iberia')) return 'nat_iberia';
-  if (nat.includes('pers') || nat.includes('part') || reg.includes('persia')) return 'nat_persia';
-  if (nat.includes('germ') || nat.includes('svev') || reg.includes('germania')) return 'nat_germania';
-  if (nat.includes('brit') || reg.includes('britannia')) return 'nat_britannia';
-  if (nat.includes('mace') || reg.includes('macedonia')) return 'nat_macedonia';
-  if (nat.includes('siri') || nat.includes('antioc') || reg.includes('siria')) return 'nat_siria';
-  if (nat.includes('arme') || reg.includes('armenia')) return 'nat_armenia';
-  if (nat.includes('numi') || reg.includes('numidia')) return 'nat_numidia';
-  if (nat.includes('nubi') || nat.includes('kush') || reg.includes('nubia') || reg.includes('etio')) return 'nat_nubia';
-  if (nat.includes('daci') || nat.includes('trac') || reg.includes('dacia')) return 'nat_dacia';
-  if (nat.includes('arab') || nat.includes('naba') || reg.includes('arabia')) return 'nat_arabia';
+  // Svincolati generici senza nazionalità dichiarata non entrano nelle selezioni
+  if (nat.includes('libero dell') || reg.includes('mercati dell')) {
+    return null;
+  }
 
-  return 'nat_roma';
+  // 1. Britannia (controllata PRIMA di qualsiasi controllo "ita" per evitare brITAnna)
+  if (
+    nat.includes('brit') ||
+    reg.includes('britannia') ||
+    reg.includes('cambria') ||
+    reg.includes('cantium') ||
+    reg.includes('dumnonia') ||
+    reg.includes('mona insula')
+  ) {
+    return 'nat_britannia';
+  }
+
+  // 2. Egitto & Nilo (include Aegyptus, Thebais, Heptanomia, Fayum, Delta Nili, Mare Rubrum)
+  if (
+    nat.includes('egiz') ||
+    nat.includes('aegypt') ||
+    nat.includes('nil') ||
+    nat.includes('theba') ||
+    nat.includes('fayum') ||
+    nat.includes('heptanom') ||
+    reg.includes('egitto') ||
+    reg.includes('aegyptus') ||
+    reg.includes('alessandria') ||
+    reg.includes('alexandria') ||
+    reg.includes('thebais') ||
+    reg.includes('heptanomia') ||
+    reg.includes('delta nili') ||
+    reg.includes('fayum') ||
+    reg.includes('mare rubrum')
+  ) {
+    return 'nat_egitto';
+  }
+
+  // 3. Siria & Levante (include Syria / Phoenice / Coele Syria / Palmyrena)
+  if (
+    nat.includes('siri') ||
+    nat.includes('syri') ||
+    nat.includes('phoen') ||
+    nat.includes('fenic') ||
+    reg.includes('syria') ||
+    reg.includes('siria') ||
+    reg.includes('phoenice') ||
+    reg.includes('antiochia') ||
+    reg.includes('palmyr') ||
+    reg.includes('palaest')
+  ) {
+    return 'nat_siria';
+  }
+
+  // 4. Dacia & Tracia (controllata PRIMA di Nubia perché "daNUBIus" contiene "nubi")
+  if (
+    nat.includes('daci') ||
+    nat.includes('trac') ||
+    nat.includes('thrac') ||
+    nat.includes('danub') ||
+    nat.includes('moesia') ||
+    nat.includes('oltenia') ||
+    nat.includes('transilvania') ||
+    nat.includes('banatus') ||
+    nat.includes('moldavia') ||
+    reg.includes('dacia') ||
+    reg.includes('danubius') ||
+    reg.includes('oltenia') ||
+    reg.includes('transilvania') ||
+    reg.includes('maramures') ||
+    reg.includes('scythia minor') ||
+    reg.includes('banatus') ||
+    reg.includes('moldavia') ||
+    reg.includes('thracia') ||
+    reg.includes('thracica') ||
+    reg.includes('moesia') ||
+    reg.includes('pontus sinister') ||
+    reg.includes('rhodope') ||
+    reg.includes('propontis') ||
+    reg.includes('bosphorus')
+  ) {
+    return 'nat_dacia';
+  }
+
+  // 5. Nubia, Kush & Axum (senza matchare Danubius)
+  if (
+    nat.includes('nubi') ||
+    nat.includes('kush') ||
+    nat.includes('etio') ||
+    nat.includes('axum') ||
+    nat.includes('abissin') ||
+    reg.includes('nubia') ||
+    reg.includes('kush') ||
+    reg.includes('abissin') ||
+    reg.includes('corno d') ||
+    reg.includes('costa del mar rosso')
+  ) {
+    return 'nat_nubia';
+  }
+
+  // 6. Numidia & Mauretania (controllata PRIMA di "ita" per via di maurITAna)
+  if (
+    nat.includes('numid') ||
+    nat.includes('mauret') ||
+    reg.includes('numidia') ||
+    reg.includes('aures') ||
+    reg.includes('mauretania')
+  ) {
+    return 'nat_numidia';
+  }
+
+  // 7. Iberia & Lusitania (controllata PRIMA di "ita" per via di lusITAna)
+  if (
+    nat.includes('iber') ||
+    nat.includes('hisp') ||
+    nat.includes('lusit') ||
+    nat.includes('celtib') ||
+    nat.includes('gallaec') ||
+    nat.includes('astur') ||
+    reg.includes('hispania') ||
+    reg.includes('iberia') ||
+    reg.includes('celtiberia') ||
+    reg.includes('lusitania') ||
+    reg.includes('gallaecia') ||
+    reg.includes('asturia')
+  ) {
+    return 'nat_iberia';
+  }
+
+  // 8. Germania & Selva Ercinia
+  if (
+    nat.includes('germ') ||
+    nat.includes('svev') ||
+    nat.includes('sueb') ||
+    nat.includes('hassia') ||
+    nat.includes('jutland') ||
+    nat.includes('frisia') ||
+    nat.includes('rhenus') ||
+    nat.includes('batav') ||
+    reg.includes('germania') ||
+    reg.includes('hassia') ||
+    reg.includes('jutlandia') ||
+    reg.includes('boiohaemum') ||
+    reg.includes('frisia') ||
+    reg.includes('rhenus') ||
+    reg.includes('batavorum') ||
+    reg.includes('thuringia') ||
+    reg.includes('suebia') ||
+    reg.includes('quadiae') ||
+    reg.includes('westfalia')
+  ) {
+    return 'nat_germania';
+  }
+
+  // 9. Roma & Italia (inclusa Gallia Cisalpina, controllata PRIMA di Gallia Transalpina)
+  if (
+    /\brom(an|ana|ano|ani)?\b/.test(nat) ||
+    /\bital(ic|ica|ico|ia)?\b/.test(nat) ||
+    nat === 'latium' ||
+    nat === 'campania' ||
+    nat === 'aemilia' ||
+    nat === 'sicilia' ||
+    nat === 'venetia' ||
+    nat === 'etruria' ||
+    nat === 'samnium' ||
+    nat === 'bruttium' ||
+    nat === 'calabria antiqua' ||
+    nat === 'gallia cisalpina' ||
+    reg.includes('latium') ||
+    reg.includes('italia') ||
+    reg.includes('campania') ||
+    reg.includes('gallia cisalpina') ||
+    reg.includes('aemilia') ||
+    reg.includes('sicilia') ||
+    reg.includes('venetia') ||
+    reg.includes('calabria') ||
+    reg.includes('etruria') ||
+    reg.includes('samnium') ||
+    reg.includes('bruttium')
+  ) {
+    return 'nat_roma';
+  }
+
+  // 10. Gallia Transalpina & Celtica
+  if (
+    nat.includes('gall') ||
+    nat.includes('celt') ||
+    nat.includes('aquit') ||
+    reg.includes('gallia') ||
+    reg.includes('aquitania')
+  ) {
+    return 'nat_gallia';
+  }
+
+  // 11. Cartagine & Africa Punica (incl. Zeugitana, Byzacena, Tripolitania, Cirenaica)
+  if (
+    nat.includes('punic') ||
+    nat.includes('cartag') ||
+    nat.includes('carthag') ||
+    nat.includes('poen') ||
+    nat.includes('zeugit') ||
+    nat.includes('byzac') ||
+    nat.includes('tripolit') ||
+    nat.includes('syrtic') ||
+    nat.includes('cirena') ||
+    nat.includes('marmar') ||
+    reg.includes('cartagine') ||
+    reg.includes('carthago') ||
+    reg.includes('zeugitana') ||
+    reg.includes('byzacena') ||
+    reg.includes('cap bon') ||
+    reg.includes('tripolitania') ||
+    reg.includes('syrtica') ||
+    reg.includes('cirenaica') ||
+    reg.includes('marmarica')
+  ) {
+    return 'nat_cartagine';
+  }
+
+  // 12. Macedonia, Epiro & Illiria/Dalmazia
+  if (
+    nat.includes('maced') ||
+    nat.includes('epir') ||
+    nat.includes('illyr') ||
+    nat.includes('illir') ||
+    nat.includes('dalma') ||
+    nat.includes('istria') ||
+    nat.includes('liburn') ||
+    reg.includes('macedonia') ||
+    reg.includes('epirus') ||
+    reg.includes('pieria') ||
+    reg.includes('chalcidice') ||
+    reg.includes('paeonia') ||
+    reg.includes('illyria') ||
+    reg.includes('illiria') ||
+    reg.includes('dalmazia') ||
+    reg.includes('dalmata') ||
+    reg.includes('liburnia') ||
+    reg.includes('adriatiche') ||
+    reg.includes('istria')
+  ) {
+    return 'nat_macedonia';
+  }
+
+  // 13. Grecia, Peloponneso & Ionia/Anatolia Egea
+  if (
+    nat.includes('grec') ||
+    nat.includes('ell') ||
+    nat.includes('hell') ||
+    nat.includes('attic') ||
+    nat.includes('lacon') ||
+    nat.includes('achae') ||
+    nat.includes('boeot') ||
+    nat.includes('ionia') ||
+    nat.includes('aeolis') ||
+    nat.includes('caria') ||
+    nat.includes('lydia') ||
+    nat.includes('mysia') ||
+    reg.includes('grecia') ||
+    reg.includes('atene') ||
+    reg.includes('sparta') ||
+    reg.includes('attica') ||
+    reg.includes('laconia') ||
+    reg.includes('achaea') ||
+    reg.includes('boeotia') ||
+    reg.includes('aegaeae') ||
+    reg.includes('phocis') ||
+    reg.includes('elis') ||
+    reg.includes('argolis') ||
+    reg.includes('euboea') ||
+    reg.includes('thessalia') ||
+    reg.includes('megaris') ||
+    reg.includes('ionia') ||
+    reg.includes('aeolis') ||
+    reg.includes('caria') ||
+    reg.includes('lydia') ||
+    reg.includes('mysia')
+  ) {
+    return 'nat_grecia';
+  }
+
+  // 14. Armenia, Caucaso, Cappadocia, Cilicia & Ponto
+  if (
+    nat.includes('armen') ||
+    nat.includes('cappad') ||
+    nat.includes('cilic') ||
+    nat.includes('pont') ||
+    nat.includes('ararat') ||
+    nat.includes('colchid') ||
+    reg.includes('armenia') ||
+    reg.includes('ararat') ||
+    reg.includes('tospitis') ||
+    reg.includes('kotayk') ||
+    reg.includes('sophene') ||
+    reg.includes('vanand') ||
+    reg.includes('daranaghi') ||
+    reg.includes('arzanene') ||
+    reg.includes('moxoene') ||
+    reg.includes('siwnik') ||
+    reg.includes('vaspurakan') ||
+    reg.includes('cappadocia') ||
+    reg.includes('taurus') ||
+    reg.includes('cilicia') ||
+    reg.includes('pontica') ||
+    reg.includes('pontus') ||
+    reg.includes('colchide') ||
+    reg.includes('lykos') ||
+    reg.includes('iris')
+  ) {
+    return 'nat_armenia';
+  }
+
+  // 15. Arabia & Nabatea
+  if (
+    nat.includes('arab') ||
+    nat.includes('nabat') ||
+    nat.includes('sabe') ||
+    nat.includes('saba') ||
+    reg.includes('arabia') ||
+    reg.includes('nabate') ||
+    reg.includes('saba') ||
+    reg.includes('hadramawt') ||
+    reg.includes('qataban') ||
+    reg.includes('ma’in') ||
+    reg.includes('himyar') ||
+    reg.includes('dhofar') ||
+    reg.includes('troglodyt') ||
+    reg.includes('hijaz') ||
+    reg.includes('hawran') ||
+    reg.includes('decapolis') ||
+    reg.includes('ammonitis') ||
+    reg.includes('moabitis') ||
+    reg.includes('negev') ||
+    reg.includes('aqaba') ||
+    reg.includes('sirhan') ||
+    reg.includes('deserto di rum')
+  ) {
+    return 'nat_arabia';
+  }
+
+  // 16. Impero Persiano, Partico, Battriana & Sarmatia
+  if (
+    nat.includes('pers') ||
+    nat.includes('part') ||
+    nat.includes('bactr') ||
+    nat.includes('sogd') ||
+    nat.includes('sarmat') ||
+    nat.includes('scit') ||
+    nat.includes('mesopot') ||
+    nat.includes('babyl') ||
+    reg.includes('persis') ||
+    reg.includes('persia') ||
+    reg.includes('susiana') ||
+    reg.includes('media') ||
+    reg.includes('aria') ||
+    reg.includes('carmania') ||
+    reg.includes('drangiana') ||
+    reg.includes('arachosia') ||
+    reg.includes('margiana') ||
+    reg.includes('mesopotamia') ||
+    reg.includes('parthia') ||
+    reg.includes('babylonia') ||
+    reg.includes('characene') ||
+    reg.includes('astabene') ||
+    reg.includes('adiabene') ||
+    reg.includes('bactria') ||
+    reg.includes('sogdiana') ||
+    reg.includes('paropamisadae') ||
+    reg.includes('pamir') ||
+    reg.includes('scit') ||
+    reg.includes('bosforo') ||
+    reg.includes('tauride') ||
+    reg.includes('meotide') ||
+    reg.includes('sarmat')
+  ) {
+    return 'nat_persia';
+  }
+
+  // Nessun fallback cieco su Roma: evita contaminazione con atleti di altre province
+  if (combined.includes('roma')) return 'nat_roma';
+  return null;
 }
 
 /**
@@ -222,7 +588,7 @@ export function initializeNationalTeams(allPlayers: Record<string, Player>): Rec
 
   for (const p of Object.values(allPlayers)) {
     const natId = getNationalTeamIdForPlayer(p);
-    if (playersByNat[natId]) {
+    if (natId && playersByNat[natId]) {
       playersByNat[natId].push(p);
     }
   }
@@ -252,6 +618,29 @@ export function initializeNationalTeams(allPlayers: Record<string, Player>): Rec
   }
 
   return teams;
+}
+
+/**
+ * Aggiorna le convocazioni di una carriera esistente preservando statistiche e trofei già conseguiti.
+ */
+export function refreshNationalTeamsRosters(
+  existingTeams: Record<string, NationalTeam> | undefined,
+  allPlayers: Record<string, Player>
+): Record<string, NationalTeam> {
+  const freshTeams = initializeNationalTeams(allPlayers);
+  if (!existingTeams) return freshTeams;
+
+  const merged: Record<string, NationalTeam> = {};
+  for (const [id, fresh] of Object.entries(freshTeams)) {
+    const prev = existingTeams[id];
+    merged[id] = prev
+      ? {
+          ...prev,
+          giocatoriConvocatiIds: fresh.giocatoriConvocatiIds
+        }
+      : fresh;
+  }
+  return merged;
 }
 
 /**

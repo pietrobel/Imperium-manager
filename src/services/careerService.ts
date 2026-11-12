@@ -1,4 +1,4 @@
-import type { CareerSave, Manager, Match, MatchResult } from '../types';
+import type { CareerSave, Manager, Match, MatchResult, NewsItem, WeeklyFinanceSnapshot } from '../types';
 import { INITIAL_LEAGUES } from '../initialData/leagues';
 import { INITIAL_CLUBS } from '../initialData/clubs';
 import { INITIAL_REGIONS } from '../initialData/regions';
@@ -10,10 +10,12 @@ import { createWeeklyWorldNews } from '../engines/worldEngine';
 import { getRomanDateString, convertBCToOlympicEra } from '../engines/calendarEngine';
 import { evolvePlayerAttributes } from '../engines/playerGrowthEngine';
 import { generateAIOffersForUserPlayer } from '../engines/transferEngine';
-import { processSeasonEndTransition } from '../engines/seasonEndEngine';
+import { processSeasonEndTransition, type SeasonEndReport } from '../engines/seasonEndEngine';
 import { careerRepository } from '../repositories/DexieCareerRepository';
 import { initializeNationalTeams, generateNationalMatches } from '../engines/nationalTeamsEngine';
 import { advanceValetudinarium, MEDICAL_STAFF_TIERS } from '../engines/militaryTrainingEngine';
+import { initializeAllCupMatches, simulateCupMatch, advanceCupBrackets, reconcileCupMatches } from '../engines/cupEngine';
+import { getClubReserveColors } from '../engines/kitColorEngine';
 
 import type { ClubHeraldryData } from '../types';
 
@@ -55,12 +57,25 @@ export function createNewCareer(params: CreateCareerParams): CareerSave {
     };
   }
 
-  // Generate fixtures for each league
+  // Ensure every club has explicit reserve kit colors (primary + secondary + reserve)
+  Object.values(clubs).forEach((club: any) => {
+    if (!club.colori?.reservePrimary) {
+      const reserve = getClubReserveColors(club);
+      club.colori = {
+        ...club.colori,
+        reservePrimary: reserve.primary,
+        reserveSecondary: reserve.secondary
+      };
+    }
+  });
+
+  // Generate fixtures for each league + 4 official knockout cups
   const allMatches: Match[] = [];
   for (const league of Object.values(leagues)) {
     const fixtures = generateLeagueFixtures(league as any, currentYear);
     allMatches.push(...fixtures);
   }
+  allMatches.push(...initializeAllCupMatches(clubs, currentYear));
 
   const nationalTeams = initializeNationalTeams(worldPlayers);
   const nationalMatches = generateNationalMatches(50);
@@ -120,31 +135,43 @@ export interface MatchdaySimulationResult {
   updatedCareer: CareerSave;
   simulatedMatches: { match: Match; result: MatchResult }[];
   userMatch?: { match: Match; result: MatchResult };
+  seasonEndReport?: SeasonEndReport;
 }
 
 export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
   const matchday = career.currentMatchday;
-  const currentMatches = career.matches.filter(m => m.giornata === matchday && !m.disputata);
   
   const simulatedMatches: { match: Match; result: MatchResult }[] = [];
   let userMatch: { match: Match; result: MatchResult } | undefined;
 
   const updatedPlayers = { ...career.players };
-  const updatedClubs = { ...career.clubs };
-  const updatedMatches = [...career.matches];
+  let updatedClubs = { ...career.clubs };
+  let updatedMatches = reconcileCupMatches([...career.matches], updatedClubs, career.currentYear);
+  const currentMatches = updatedMatches.filter(m => m.giornata === matchday && !m.disputata);
 
-  // 1. Simulate all matches in this matchday
+  // Track players who were already suspended entering this matchday (so they serve 1 match ban and return ready next day)
+  const servingSuspensionIds = new Set<string>(
+    Object.values(updatedPlayers)
+      .filter(p => p.squalificato)
+      .map(p => p.id)
+  );
+  const disciplineNews: NewsItem[] = [];
+
+  // 1. Simulate all matches in this matchday (leagues + scheduled cups)
   currentMatches.forEach(match => {
     const homeClub = updatedClubs[match.clubCasaId];
     const awayClub = updatedClubs[match.clubOspiteId];
     if (!homeClub || !awayClub) return;
 
-    const result = simulateMatch({
-      homeClub,
-      awayClub,
-      allPlayers: updatedPlayers,
-      competitionName: 'Prima Divisio'
-    });
+    const result =
+      match.competitionType === 'CUP'
+        ? simulateCupMatch(match, updatedClubs, updatedPlayers).result
+        : simulateMatch({
+            homeClub,
+            awayClub,
+            allPlayers: updatedPlayers,
+            competitionName: career.leagues[match.competitionId]?.nome || 'Prima Divisio'
+          });
 
     match.disputata = true;
     match.risultato = result;
@@ -155,13 +182,41 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
       userMatch = { match, result };
     }
 
-    // Update player stats
+    // Update player stats (Mete scored + disciplinary cards & suspensions)
     result.eventi.forEach(evt => {
       if (evt.giocatoreId && updatedPlayers[evt.giocatoreId]) {
         const p = updatedPlayers[evt.giocatoreId];
-        if (evt.tipo === 'GOL') p.statisticheStagione.gol++;
-        if (evt.tipo === 'GIALLO') p.statisticheStagione.cartelliniGialli++;
-        if (evt.tipo === 'ROSSO') p.statisticheStagione.cartelliniRossi++;
+        if (evt.tipo === 'META' || evt.tipo === 'GOL') {
+          p.statisticheStagione.gol++;
+        }
+        if (evt.tipo === 'GIALLO') {
+          p.statisticheStagione.cartelliniGialli++;
+          if (p.statisticheStagione.cartelliniGialli > 0 && p.statisticheStagione.cartelliniGialli % 4 === 0) {
+            p.squalificato = true;
+            if (p.clubId === career.userClubId) {
+              disciplineNews.push({
+                id: `news_disc_${Date.now()}_${p.id}`,
+                titolo: `Squalifica Disciplinare: ${p.nome} ${p.cognome}`,
+                corpo: `Dopo la ${p.statisticheStagione.cartelliniGialli}ª ammonizione stagionale, i Decurioni Arbitrali fermano ${p.nome} ${p.cognome} per il prossimo agone.`,
+                data: getRomanDateString(matchday, Math.abs(career.currentYear)),
+                categoria: 'SOCIETA'
+              });
+            }
+          }
+        }
+        if (evt.tipo === 'ROSSO') {
+          p.statisticheStagione.cartelliniRossi++;
+          p.squalificato = true;
+          if (p.clubId === career.userClubId) {
+            disciplineNews.push({
+              id: `news_red_${Date.now()}_${p.id}`,
+              titolo: `Espulsione nell'Arena: ${p.nome} ${p.cognome}`,
+              corpo: `${p.nome} ${p.cognome} è stato espulso dai Decurioni e salterà la prossima giornata per squalifica.`,
+              data: getRomanDateString(matchday, Math.abs(career.currentYear)),
+              categoria: 'SOCIETA'
+            });
+          }
+        }
       }
     });
 
@@ -176,6 +231,13 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
         p.condizione = Math.max(60, p.condizione - 12); // Match fatigue
       }
     });
+  });
+
+  // Clear suspensions for players who served their 1-match ban today
+  servingSuspensionIds.forEach(pid => {
+    if (updatedPlayers[pid]) {
+      updatedPlayers[pid].squalificato = false;
+    }
   });
 
   // 2. Process Manager stats for user
@@ -198,12 +260,17 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
     }
   }
 
-  // 3. Process Weekly Finances for User Club
+  // 3. Process Weekly Finances for User Club & persist snapshot
+  let latestFinanceSnapshot: WeeklyFinanceSnapshot | undefined = career.ultimoBilancio;
   const userClub = updatedClubs[career.userClubId];
   if (userClub) {
     const isHome = userMatch ? userMatch.match.clubCasaId === career.userClubId : false;
+    const oppClubId = userMatch
+      ? (isHome ? userMatch.match.clubOspiteId : userMatch.match.clubCasaId)
+      : '';
+    const oppRep = oppClubId ? updatedClubs[oppClubId]?.reputazione || 700 : 700;
     const squad = Object.values(updatedPlayers).filter(p => p.clubId === userClub.id);
-    const { updatedClub } = processWeeklyFinances(userClub, squad, isHome);
+    const { updatedClub, report } = processWeeklyFinances(userClub, squad, isHome, oppRep);
 
     // Salario dello Staff Medico del Valetudinarium
     const medTier = updatedClub.impostazioniAllenamento?.medicoAssegnato || 'ERBISTA_CASTRORUM';
@@ -212,12 +279,24 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
       updatedClub.saldoCassa = Math.max(-500000, updatedClub.saldoCassa - medCost);
     }
 
+    latestFinanceSnapshot = {
+      giornata: matchday,
+      entrateBiglietti: report.entrateBiglietti,
+      entratePatroni: report.entratePatroni,
+      usciteStipendi: report.usciteStipendi,
+      usciteManutenzione: report.usciteManutenzione,
+      usciteMediche: medCost,
+      saldoNettoSettimana: report.saldoNettoSettimana - medCost,
+      nuovoSaldoCassa: updatedClub.saldoCassa,
+      spettatori: report.spettatori
+    };
+
     updatedClubs[career.userClubId] = updatedClub;
   }
 
   // 4. Valetudinarium: guarigione infortuni e defaticamento coorte
   const userMedTier = userClub?.impostazioniAllenamento?.medicoAssegnato || 'ERBISTA_CASTRORUM';
-  const medicalNews: any[] = [];
+  const medicalNews: NewsItem[] = [];
 
   Object.keys(updatedPlayers).forEach(id => {
     const p = updatedPlayers[id];
@@ -233,8 +312,8 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
           id: `news_valetudinarium_${Date.now()}_${p.id}`,
           titolo: `Dimissione dal Valetudinarium: ${p.nome} ${p.cognome} è guarito!`,
           corpo: message,
-          data: getRomanDateString(matchday, 50),
-          categoria: 'SODALIZIO' as const
+          data: getRomanDateString(matchday, Math.abs(career.currentYear)),
+          categoria: 'SOCIETA'
         });
       }
     } else {
@@ -252,7 +331,7 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
 
   // 6. Transfer Market AI Activity for User Players
   const nextMatchday = matchday + 1;
-  const nextDateStr = getRomanDateString(nextMatchday, 50);
+  const nextDateStr = getRomanDateString(nextMatchday, Math.abs(career.currentYear));
   
   // Filter active pending offers (keep only non-expired ones)
   const activePendingOffers = (career.incomingOffers || []).filter(
@@ -276,6 +355,36 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
     }
   }
 
+  // 6b. Advance Cup Brackets & Crown Champions if Finals finished
+  const cupAdvancement = advanceCupBrackets(
+    updatedMatches,
+    updatedClubs,
+    career.currentYear,
+    career.trofeiAlboDOro || {}
+  );
+  updatedMatches = cupAdvancement.updatedMatches;
+  updatedClubs = cupAdvancement.updatedClubs;
+  const updatedAlboDOro = cupAdvancement.updatedAlbo;
+  const cupNews = cupAdvancement.crownedChampions.map(champ => ({
+    id: `news_cup_${champ.compId}_${Date.now()}`,
+    titolo: `${champ.clubNome} trionfa in ${champ.compNome}!`,
+    corpo: `Grande esultanza nell'arena: ${champ.clubNome} conquista ${champ.compNome}, incassa 1.500.000 HS e incide il proprio nome negli Annali del Senato.`,
+    data: getRomanDateString(matchday, Math.abs(career.currentYear)),
+    categoria: 'IMPERO' as const
+  }));
+
+  const cupEra = convertBCToOlympicEra(career.currentYear);
+  updatedManager.trofeiVinti = [...(updatedManager.trofeiVinti || [])];
+  for (const champ of cupAdvancement.crownedChampions) {
+    if (champ.clubId === career.userClubId) {
+      const trophyLabel = `${champ.compNome} (${cupEra.displayText})`;
+      if (!updatedManager.trofeiVinti.includes(trophyLabel)) {
+        updatedManager.trofeiVinti.push(trophyLabel);
+      }
+      updatedManager.puntiReputazione += 80;
+    }
+  }
+
   // 7. Check Season Completion (All 30 Matchdays Completed)
   if (nextMatchday > 30) {
     const { updatedCareer: nextSeasonCareer, report } = processSeasonEndTransition({
@@ -283,7 +392,8 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
       players: updatedPlayers,
       clubs: updatedClubs,
       matches: updatedMatches,
-      manager: updatedManager
+      manager: updatedManager,
+      trofeiAlboDOro: updatedAlboDOro
     });
 
     const oldEra = convertBCToOlympicEra(Math.abs(career.currentYear));
@@ -300,7 +410,7 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
       categoria: 'IMPERO' as const
     };
 
-    nextSeasonCareer.news = [endOfSeasonNews, ...(nextSeasonCareer.news || []).slice(0, 15)];
+    nextSeasonCareer.news = [endOfSeasonNews, ...cupNews, ...(nextSeasonCareer.news || []).slice(0, 15)];
 
     careerRepository.saveCareer(nextSeasonCareer).catch(err => {
       console.warn('Auto-save error:', err);
@@ -309,7 +419,8 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
     return {
       updatedCareer: nextSeasonCareer,
       simulatedMatches,
-      userMatch
+      userMatch,
+      seasonEndReport: report
     };
   }
 
@@ -325,6 +436,10 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
     topResultStr
   );
 
+  const updatedFinanceHistory = latestFinanceSnapshot
+    ? [...(career.storicoFinanze || []).slice(-29), latestFinanceSnapshot]
+    : career.storicoFinanze;
+
   const updatedCareer: CareerSave = {
     ...career,
     currentMatchday: nextMatchday,
@@ -333,8 +448,11 @@ export function advanceMatchday(career: CareerSave): MatchdaySimulationResult {
     clubs: updatedClubs,
     matches: updatedMatches,
     manager: updatedManager,
+    trofeiAlboDOro: updatedAlboDOro,
+    ultimoBilancio: latestFinanceSnapshot,
+    storicoFinanze: updatedFinanceHistory,
     incomingOffers: [...newBids, ...activePendingOffers],
-    news: [...newWeeklyNews, ...career.news.slice(0, 15)],
+    news: [...cupNews, ...disciplineNews, ...medicalNews, ...newWeeklyNews, ...career.news.slice(0, 15)],
     updatedAt: Date.now()
   };
 

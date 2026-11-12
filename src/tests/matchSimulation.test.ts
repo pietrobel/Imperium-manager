@@ -1,4 +1,4 @@
-import { simulateMatch } from '../engines/matchSimulationEngine';
+import { simulateMatch, getFormationModifiers } from '../engines/matchSimulationEngine';
 import { calculateLeagueTable, generateLeagueFixtures } from '../engines/leagueEngine';
 import {
   calculatePlayerMarketValue,
@@ -238,9 +238,32 @@ export function runImperiumSelfTests(): { passed: boolean; log: string[] } {
     }
     log.push(`[PASS] All 3 International Cups + National Cup validated with active qualifying clubs`);
 
-    // 16. Test Season End Transition Engine
+    // 16. Test Season End Transition Engine & Formation Modifiers
+    const atkMods = getFormationModifiers('3-4-3');
+    const defMods = getFormationModifiers('5-4-1');
+    if (atkMods.praevenientes <= defMods.praevenientes || defMods.luctatores <= atkMods.luctatores) {
+      throw new Error('Formation modifiers must reflect offensive vs defensive tactical trade-offs');
+    }
+    log.push(`[PASS] Tactical formation modifiers validated (3-4-3 Praev ${atkMods.praevenientes} vs 5-4-1 Luct ${defMods.luctatores})`);
+
     const mockCareerSave: any = {
       id: 'career_test',
+      userClubId: 'club_roma',
+      manager: {
+        id: 'mgr_test',
+        nome: 'Marcus',
+        cognome: 'Aurelius',
+        nazionalita: 'Romana',
+        famigliaOrigine: 'Julia',
+        clubId: 'club_roma',
+        puntiReputazione: 500,
+        partiteGestite: 30,
+        vittorie: 20,
+        pareggi: 5,
+        sconfitte: 5,
+        trofeiVinti: [],
+        dataIngaggio: 'Test'
+      },
       currentYear: -50,
       currentMatchday: 31,
       clubs: clonedClubs,
@@ -252,6 +275,9 @@ export function runImperiumSelfTests(): { passed: boolean; log: string[] } {
     };
 
     const seasonEndResult = processSeasonEndTransition(mockCareerSave);
+    if (!seasonEndResult.report.userSummary || !seasonEndResult.report.eraDisplayText || !seasonEndResult.report.nextEraDisplayText) {
+      throw new Error('Expected enriched SeasonEndReport with userSummary and Olympic eras');
+    }
     if (seasonEndResult.updatedCareer.currentYear !== -49) {
       throw new Error(`Expected season year to advance to -49, got ${seasonEndResult.updatedCareer.currentYear}`);
     }

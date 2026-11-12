@@ -1,25 +1,70 @@
 import React, { useState } from 'react';
-import type { CareerSave, NationalTeam, Player } from '../types';
+import type { CareerSave, NationalTeam, Player, Club, Match, MatchResult } from '../types';
 import { RetroButton } from '../components/RetroButton';
-import { OFFICIAL_NATIONAL_CIVILIZATIONS, simulateNationalMatch } from '../engines/nationalTeamsEngine';
-import { getHarpastumRole, getHarpastumRoleBadgeStyle } from '../engines/harpastumEngine';
-import { Flag, Trophy, Users, Swords, Award, Shield, Sparkles } from 'lucide-react';
+import { AthleteJerseyBadge } from '../components/AthleteJerseyBadge';
+import { careerRepository } from '../repositories/DexieCareerRepository';
+import { OFFICIAL_NATIONAL_CIVILIZATIONS, simulateNationalMatch, generateNationalMatches } from '../engines/nationalTeamsEngine';
+import { simulateMatch } from '../engines/matchSimulationEngine';
+import { resolveMatchKits } from '../engines/kitColorEngine';
+import { getHarpastumRoleBadgeStyle } from '../engines/harpastumEngine';
+import { audio } from '../services/audioService';
+import { Flag, Trophy, Users, Swords, RefreshCw, Eye } from 'lucide-react';
 
 interface NationalTeamsScreenProps {
   career: CareerSave;
+  onUpdateCareer?: (updatedCareer: CareerSave) => void;
   onSelectPlayer: (player: Player) => void;
+  onLaunchNationalMatchSimulation?: (payload: {
+    simulatedMatches: { match: Match; result: MatchResult }[];
+    userMatch?: { match: Match; result: MatchResult };
+    clubsOverride?: Record<string, Club>;
+    playersOverride?: Record<string, Player>;
+  }) => void;
+}
+
+function buildVirtualNationalClub(team: NationalTeam): Club {
+  const convocati = team.giocatoriConvocatiIds || [];
+  return {
+    id: team.id,
+    nome: team.nome,
+    sigla: team.sigla,
+    citta: team.regione,
+    regione: team.regione,
+    stadioNome: `Arena di ${team.regione.split('&')[0].trim()}`,
+    stadioCapienza: 45000,
+    leagueId: 'certamen_nationum',
+    reputazione: team.reputazione,
+    saldoCassa: 0,
+    budgetTrasferimenti: 0,
+    budgetStipendi: 0,
+    formazioneTattica: '4-4-2',
+    allenatoreNome: team.commissarioTecnico || 'Praefectus Legionis',
+    isUserControlled: false,
+    colori: {
+      primary: team.stemmaColore,
+      secondary: '#d4af37',
+      text: '#ffffff',
+      reservePrimary: '#f8fafc',
+      reserveSecondary: team.stemmaColore
+    },
+    titolariIds: convocati.slice(0, 12),
+    panchinaIds: convocati.slice(12),
+    storiaTrofei: team.trofeiVinti || [],
+    storicoCampionati: []
+  };
 }
 
 export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
   career,
-  onSelectPlayer
+  onUpdateCareer,
+  onSelectPlayer,
+  onLaunchNationalMatchSimulation
 }) => {
   const nationalTeams = career.nationalTeams || {};
   const nationalMatches = career.nationalMatches || [];
 
   const [selectedNatId, setSelectedNatId] = useState<string>('nat_roma');
   const [activeTab, setActiveTab] = useState<'ROSA' | 'TORNEO' | 'ALBO'>('ROSA');
-  const [simulatedMatches, setSimulatedMatches] = useState(nationalMatches);
 
   const selectedTeam = nationalTeams[selectedNatId] || Object.values(nationalTeams)[0];
   const selectedCivInfo = OFFICIAL_NATIONAL_CIVILIZATIONS.find(c => c.id === selectedNatId) || OFFICIAL_NATIONAL_CIVILIZATIONS[0];
@@ -28,22 +73,140 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
     .map(id => career.players[id])
     .filter(Boolean);
 
-  const handleSimulateMatch = (matchId: string) => {
-    const matchIndex = simulatedMatches.findIndex(m => m.id === matchId);
-    if (matchIndex === -1) return;
-    const match = simulatedMatches[matchIndex];
-    if (match.disputata) return;
-
-    const res = simulateNationalMatch(match, nationalTeams, career.players);
-    const updated = [...simulatedMatches];
-    updated[matchIndex] = res;
-    setSimulatedMatches(updated);
+  const persistNationalUpdate = (updatedTeams: Record<string, NationalTeam>, updatedMatches: typeof nationalMatches) => {
+    if (!onUpdateCareer) return;
+    const nextCareer: CareerSave = {
+      ...career,
+      nationalTeams: updatedTeams,
+      nationalMatches: updatedMatches,
+      updatedAt: Date.now()
+    };
+    onUpdateCareer(nextCareer);
+    careerRepository.saveCareer(nextCareer);
   };
 
+  const handleSimulateMatch = (matchId: string) => {
+    const matchIndex = nationalMatches.findIndex(m => m.id === matchId);
+    if (matchIndex === -1) return;
+    const match = nationalMatches[matchIndex];
+    if (match.disputata) return;
+
+    const clonedTeams: Record<string, NationalTeam> = JSON.parse(JSON.stringify(nationalTeams));
+    const res = simulateNationalMatch(match, clonedTeams, career.players);
+    const updatedMatches = [...nationalMatches];
+    updatedMatches[matchIndex] = res;
+    persistNationalUpdate(clonedTeams, updatedMatches);
+  };
+
+  const handleSimulateAllPending = () => {
+    const clonedTeams: Record<string, NationalTeam> = JSON.parse(JSON.stringify(nationalTeams));
+    const updatedMatches = nationalMatches.map(m =>
+      m.disputata ? m : simulateNationalMatch(m, clonedTeams, career.players)
+    );
+    persistNationalUpdate(clonedTeams, updatedMatches);
+  };
+
+  const handleNewNationalEdition = () => {
+    const freshMatches = generateNationalMatches(Math.abs(career.currentYear));
+    persistNationalUpdate(nationalTeams, freshMatches);
+  };
+
+  const handleLaunchMatch2D = (matchId: string) => {
+    if (!onLaunchNationalMatchSimulation) return;
+    const matchIndex = nationalMatches.findIndex(m => m.id === matchId);
+    if (matchIndex === -1) return;
+    const match = nationalMatches[matchIndex];
+    if (match.disputata) return;
+
+    const clonedTeams: Record<string, NationalTeam> = JSON.parse(JSON.stringify(nationalTeams));
+    const homeTeam = clonedTeams[match.nazionaleCasaId];
+    const awayTeam = clonedTeams[match.nazionaleOspiteId];
+    if (!homeTeam || !awayTeam) return;
+
+    const homeClub = buildVirtualNationalClub(homeTeam);
+    const awayClub = buildVirtualNationalClub(awayTeam);
+
+    const playersOverride: Record<string, Player> = {};
+    for (const pid of homeTeam.giocatoriConvocatiIds || []) {
+      const p = career.players[pid];
+      if (p) playersOverride[pid] = { ...p, clubId: homeClub.id };
+    }
+    for (const pid of awayTeam.giocatoriConvocatiIds || []) {
+      const p = career.players[pid];
+      if (p) playersOverride[pid] = { ...p, clubId: awayClub.id };
+    }
+
+    const simRes = simulateMatch({
+      homeClub,
+      awayClub,
+      allPlayers: playersOverride,
+      competitionName: match.torneo
+    });
+
+    const winnerTeamId = simRes.golCasa >= simRes.golOspite ? homeClub.id : awayClub.id;
+    const ratingsList = Object.values(simRes.pagelle || {})
+      .filter(r => playersOverride[r.playerId]?.clubId === winnerTeamId)
+      .sort((a, b) => b.voto - a.voto);
+    const topPlayer = ratingsList[0] ? playersOverride[ratingsList[0].playerId] : null;
+    const mvpName = topPlayer
+      ? `${topPlayer.nome} ${topPlayer.cognome}`
+      : simRes.marcatoriCasa[0]?.nome || simRes.marcatoriOspite[0]?.nome || 'Praeveniens Primus';
+
+    homeTeam.partiteGiocate += 1;
+    awayTeam.partiteGiocate += 1;
+    if (simRes.golCasa > simRes.golOspite) {
+      homeTeam.vittorie += 1;
+      awayTeam.sconfitte += 1;
+    } else if (simRes.golOspite > simRes.golCasa) {
+      awayTeam.vittorie += 1;
+      homeTeam.sconfitte += 1;
+    } else {
+      homeTeam.pareggi += 1;
+      awayTeam.pareggi += 1;
+    }
+
+    const updatedMatches = [...nationalMatches];
+    updatedMatches[matchIndex] = {
+      ...match,
+      disputata: true,
+      meteCasa: simRes.golCasa,
+      meteOspite: simRes.golOspite,
+      migliorAtleta: mvpName
+    };
+    persistNationalUpdate(clonedTeams, updatedMatches);
+    audio.playClick();
+
+    const syntheticMatch: Match = {
+      id: match.id,
+      competitionId: 'certamen_nationum',
+      competitionType: 'CUP',
+      stagioneAnno: match.stagioneAnno,
+      giornata: 1,
+      dataCalendario: match.dataCalendario,
+      dataNumero: matchIndex + 1,
+      clubCasaId: homeClub.id,
+      clubOspiteId: awayClub.id,
+      disputata: true,
+      risultato: simRes
+    };
+
+    onLaunchNationalMatchSimulation({
+      simulatedMatches: [{ match: syntheticMatch, result: simRes }],
+      userMatch: { match: syntheticMatch, result: simRes },
+      clubsOverride: {
+        [homeClub.id]: homeClub,
+        [awayClub.id]: awayClub
+      },
+      playersOverride
+    });
+  };
+
+  const hasPendingMatches = nationalMatches.some(m => !m.disputata);
+
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col gap-2.5 min-h-0 overflow-hidden">
       {/* Header Panel */}
-      <div className="retro-box p-3 flex flex-col md:flex-row items-center justify-between gap-3 border-l-4 border-l-[#d4af37]">
+      <div className="retro-box p-2.5 flex flex-col md:flex-row items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-[#521118] border-2 border-[#d4af37] flex items-center justify-center text-[#d4af37] shadow">
             <Flag size={20} />
@@ -91,7 +254,7 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
       </div>
 
       {/* Nation Selector Carousel */}
-      <div className="retro-box p-2.5 overflow-x-auto flex items-center gap-2">
+      <div className="retro-box p-2 overflow-x-auto flex items-center gap-1.5 shrink-0">
         <span className="font-roman text-[10px] text-[#d4af37] font-bold shrink-0 uppercase mr-1">
           NAZIONALI:
         </span>
@@ -107,7 +270,12 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
                   : 'bg-[#2b080b] text-[#cbd5e1] border-[#521016] hover:text-white hover:border-[#731922]'
               }`}
             >
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: civ.stemmaColore }} />
+              <AthleteJerseyBadge
+                primary={civ.stemmaColore}
+                secondary="#d4af37"
+                outline="#fef08a"
+                size="xs"
+              />
               <span>{civ.sigla}</span>
               <span className="text-[10px] font-normal text-[#94a3b8]">({civ.nome.split(' ')[1] || civ.nome})</span>
             </button>
@@ -117,15 +285,18 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
 
       {/* Main View Content */}
       {activeTab === 'ROSA' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch overflow-hidden">
           {/* Nation Dossier & Banner */}
-          <div className="retro-box p-4 flex flex-col justify-between">
+          <div className="retro-box p-3 flex flex-col justify-between overflow-y-auto">
             <div>
               <div className="pb-3 border-b border-[#731922] mb-3">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full border border-white"
-                    style={{ backgroundColor: selectedCivInfo.stemmaColore }}
+                <div className="flex items-center gap-2.5">
+                  <AthleteJerseyBadge
+                    primary={selectedCivInfo.stemmaColore}
+                    secondary="#d4af37"
+                    outline="#fef08a"
+                    size="md"
+                    title={`Tunica Nazionale ${selectedTeam?.nome}`}
                   />
                   <h2 className="font-roman text-sm font-black text-[#d4af37]">
                     {selectedTeam?.nome.toUpperCase()}
@@ -169,8 +340,8 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
           </div>
 
           {/* Call-up Roster Table */}
-          <div className="lg:col-span-2 retro-box overflow-hidden">
-            <div className="retro-panel-header px-4 py-2.5 flex items-center justify-between border-b border-[#731922]">
+          <div className="lg:col-span-2 retro-box flex flex-col min-h-0 overflow-hidden">
+            <div className="retro-panel-header px-4 py-2 flex items-center justify-between border-b border-[#731922] shrink-0">
               <div className="flex items-center gap-2">
                 <Users size={14} className="text-[#d4af37]" />
                 <h3 className="font-roman text-xs font-bold text-white tracking-wide">
@@ -182,7 +353,7 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
               </span>
             </div>
 
-            <div className="overflow-x-auto max-h-[440px]">
+            <div className="flex-1 min-h-0 overflow-auto">
               <table className="w-full text-left text-xs border-collapse font-data">
                 <thead>
                   <tr className="text-[10px] text-[#cbd5e1] uppercase font-roman border-b border-[#521016] bg-[#2b080b]">
@@ -243,19 +414,45 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
 
       {/* Torneo delle Nazioni (Fixtures) */}
       {activeTab === 'TORNEO' && (
-        <div className="space-y-4">
-          <div className="retro-box p-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#731922] mb-3">
-              <Swords size={16} className="text-[#d4af37]" />
-              <h2 className="font-roman text-xs font-bold text-white tracking-wide">
-                CERTAMEN NATIONUM · PROGRAMMA UFFICIALE DEGLI SCONTRI
-              </h2>
+        <div className="flex-1 min-h-0 retro-box p-3 flex flex-col overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#731922] mb-2.5 shrink-0">
+              <div className="flex items-center gap-2">
+                <Swords size={16} className="text-[#d4af37]" />
+                <h2 className="font-roman text-xs font-bold text-white tracking-wide">
+                  CERTAMEN NATIONUM · PROGRAMMA UFFICIALE DEGLI SCONTRI
+                </h2>
+              </div>
+              {onUpdateCareer && (
+                hasPendingMatches ? (
+                  <RetroButton
+                    variant="gold"
+                    size="sm"
+                    onClick={handleSimulateAllPending}
+                    className="text-[11px] font-bold"
+                  >
+                    Simula Tutti gli Agoni &rarr;
+                  </RetroButton>
+                ) : (
+                  <RetroButton
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleNewNationalEdition}
+                    className="text-[11px] font-bold flex items-center gap-1"
+                  >
+                    <RefreshCw size={12} />
+                    <span>Nuova Edizione Certamen</span>
+                  </RetroButton>
+                )
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-data">
-              {simulatedMatches.map(m => {
+            <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-2.5 font-data pr-0.5">
+              {nationalMatches.map(m => {
                 const home = nationalTeams[m.nazionaleCasaId];
                 const away = nationalTeams[m.nazionaleOspiteId];
+                const homeVClub = home ? buildVirtualNationalClub(home) : null;
+                const awayVClub = away ? buildVirtualNationalClub(away) : null;
+                const kits = homeVClub && awayVClub ? resolveMatchKits(homeVClub, awayVClub) : null;
                 return (
                   <div key={m.id} className="retro-inset p-3 border border-[#521016] flex flex-col justify-between space-y-2">
                     <div className="flex items-center justify-between text-[10px] text-[#cbd5e1] font-roman">
@@ -264,12 +461,22 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
                     </div>
 
                     <div className="flex items-center justify-between gap-2 py-1">
-                      <div className="flex-1 text-left">
-                        <div className="font-roman font-bold text-sm text-white">{home?.nome || m.nazionaleCasaId}</div>
-                        <span className="text-[10px] text-[#94a3b8]">{home?.sigla}</span>
+                      <div className="flex-1 flex items-center justify-end gap-2 text-right min-w-0">
+                        <div className="min-w-0">
+                          <div className="font-roman font-bold text-sm text-white truncate">{home?.nome || m.nazionaleCasaId}</div>
+                          <span className="text-[10px] text-[#94a3b8]">{home?.sigla}</span>
+                        </div>
+                        {kits && (
+                          <AthleteJerseyBadge
+                            primary={kits.homeKit.primary}
+                            secondary={kits.homeKit.secondary}
+                            outline={kits.homeKit.outline}
+                            size="sm"
+                          />
+                        )}
                       </div>
 
-                      <div className="px-3 py-1 bg-[#2b080b] border border-[#d4af37] rounded-xs text-center font-bold text-base min-w-[70px]">
+                      <div className="px-3 py-1 bg-[#2b080b] border border-[#d4af37] rounded-xs text-center font-bold text-base min-w-[70px] shrink-0">
                         {m.disputata ? (
                           <span className="text-[#facc15]">{m.meteCasa} - {m.meteOspite}</span>
                         ) : (
@@ -277,25 +484,48 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
                         )}
                       </div>
 
-                      <div className="flex-1 text-right">
-                        <div className="font-roman font-bold text-sm text-white">{away?.nome || m.nazionaleOspiteId}</div>
-                        <span className="text-[10px] text-[#94a3b8]">{away?.sigla}</span>
+                      <div className="flex-1 flex items-center justify-start gap-2 text-left min-w-0">
+                        {kits && (
+                          <AthleteJerseyBadge
+                            primary={kits.awayKit.primary}
+                            secondary={kits.awayKit.secondary}
+                            outline={kits.awayKit.outline}
+                            size="sm"
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-roman font-bold text-sm text-white truncate">{away?.nome || m.nazionaleOspiteId}</div>
+                          <span className="text-[10px] text-[#94a3b8]">
+                            {away?.sigla}{kits?.awayKit.isReserveKit ? ' · Riserva' : ''}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] pt-1 border-t border-[#420d11]">
-                      <span className="text-[#94a3b8]">
+                    <div className="flex items-center justify-between gap-2 text-[10px] pt-1 border-t border-[#420d11]">
+                      <span className="text-[#94a3b8] truncate">
                         {m.disputata ? `Miglior Incursore: ${m.migliorAtleta}` : 'In attesa di disputa'}
                       </span>
                       {!m.disputata ? (
-                        <button
-                          onClick={() => handleSimulateMatch(m.id)}
-                          className="px-2 py-1 bg-[#63141c] hover:bg-[#85222b] text-[#facc15] font-roman font-bold rounded-xs cursor-pointer border border-[#d4af37]"
-                        >
-                          Simula Agone
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {onLaunchNationalMatchSimulation && (
+                            <button
+                              onClick={() => handleLaunchMatch2D(m.id)}
+                              className="px-2 py-1 bg-[#0c4a6e] hover:bg-[#0369a1] text-[#fef08a] font-roman font-bold rounded-xs cursor-pointer border border-[#38bdf8]/60 flex items-center gap-1"
+                            >
+                              <Eye size={11} />
+                              <span>Arena 2D</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleSimulateMatch(m.id)}
+                            className="px-2 py-1 bg-[#63141c] hover:bg-[#85222b] text-[#facc15] font-roman font-bold rounded-xs cursor-pointer border border-[#d4af37]"
+                          >
+                            Simula Agone
+                          </button>
+                        </div>
                       ) : (
-                        <span className="text-[#10b981] font-bold">OMOLOGATO</span>
+                        <span className="text-[#10b981] font-bold shrink-0">OMOLOGATO</span>
                       )}
                     </div>
                   </div>
@@ -303,20 +533,19 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
               })}
             </div>
           </div>
-        </div>
       )}
 
       {/* Tavola & Reputazione */}
       {activeTab === 'ALBO' && (
-        <div className="retro-box overflow-hidden">
-          <div className="retro-panel-header px-4 py-2.5 flex items-center gap-2 border-b border-[#731922]">
+        <div className="flex-1 min-h-0 retro-box flex flex-col overflow-hidden">
+          <div className="retro-panel-header px-4 py-2 flex items-center gap-2 border-b border-[#731922] shrink-0">
             <Trophy size={14} className="text-[#d4af37]" />
             <h2 className="font-roman text-xs font-bold text-white tracking-wide">
               GERARCHIA DELLE CIVILTÀ · CLASSIFICA MONDIALE DELLE NAZIONALI
             </h2>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full text-left text-xs border-collapse font-data">
               <thead>
                 <tr className="text-[10px] text-[#cbd5e1] uppercase font-roman border-b border-[#521016] bg-[#2b080b]">
@@ -333,7 +562,14 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
               <tbody className="divide-y divide-[#420d11] text-xs">
                 {OFFICIAL_NATIONAL_CIVILIZATIONS
                   .slice()
-                  .sort((a, b) => b.reputazione - a.reputazione)
+                  .sort((a, b) => {
+                    const ta = nationalTeams[a.id];
+                    const tb = nationalTeams[b.id];
+                    const ptsA = (ta?.vittorie || 0) * 3 + (ta?.pareggi || 0);
+                    const ptsB = (tb?.vittorie || 0) * 3 + (tb?.pareggi || 0);
+                    if (ptsB !== ptsA) return ptsB - ptsA;
+                    return b.reputazione - a.reputazione;
+                  })
                   .map((civ, idx) => {
                     const team = nationalTeams[civ.id];
                     return (
@@ -347,7 +583,12 @@ export const NationalTeamsScreen: React.FC<NationalTeamsScreenProps> = ({
                       >
                         <td className="py-2.5 px-3 text-center font-bold text-[#facc15]">#{idx + 1}</td>
                         <td className="py-2.5 px-3 font-roman font-bold text-white flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: civ.stemmaColore }} />
+                          <AthleteJerseyBadge
+                            primary={civ.stemmaColore}
+                            secondary="#d4af37"
+                            outline="#fef08a"
+                            size="xs"
+                          />
                           <span>{civ.nome}</span>
                         </td>
                         <td className="py-2.5 px-3 text-[#cbd5e1] font-sans">{civ.cultura}</td>

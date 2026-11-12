@@ -1,5 +1,5 @@
 /**
- * IMPERIUM MANAGER (50 a.C.)
+ * MAGISTER LUDORUM (50 a.C.)
  * Core Type Definitions & Data Models
  */
 
@@ -141,9 +141,11 @@ export interface Contract {
 }
 
 export interface ClubColors {
-  primary: string;   // Hex
-  secondary: string; // Hex
-  text: string;      // Hex
+  primary: string;          // Hex - Colore sociale primario
+  secondary: string;        // Hex - Colore sociale secondario (clavus / banda)
+  text: string;             // Hex - Colore testo e numeri sulla divisa
+  reservePrimary?: string;  // Hex - Colore primario divisa di riserva (trasferte/scontri)
+  reserveSecondary?: string;// Hex - Colore secondario divisa di riserva
 }
 
 export interface ClubHistoryEntry {
@@ -387,6 +389,18 @@ export interface IncomingTransferOffer {
   expiresMatchday: number;
 }
 
+export interface WeeklyFinanceSnapshot {
+  giornata: number;
+  entrateBiglietti: number;
+  entratePatroni: number;
+  usciteStipendi: number;
+  usciteManutenzione: number;
+  usciteMediche: number;
+  saldoNettoSettimana: number;
+  nuovoSaldoCassa: number;
+  spettatori: number;
+}
+
 export interface CareerSave {
   id: string;
   saveName: string;
@@ -408,4 +422,6 @@ export interface CareerSave {
   incomingOffers?: IncomingTransferOffer[];
   news: NewsItem[];
   trofeiAlboDOro: Record<string, { anno: number; vincitoreNome: string }[]>;
+  ultimoBilancio?: WeeklyFinanceSnapshot;
+  storicoFinanze?: WeeklyFinanceSnapshot[];
 }

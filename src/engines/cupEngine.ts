@@ -112,32 +112,46 @@ export function getParticipatingClubsForCompetition(
   return clubList.slice(0, 8).map(c => c.id);
 }
 
+export function getCupRoundLabel(numClubsInRound: number): string {
+  if (numClubsInRound >= 16) return 'Ottavi di Finale';
+  if (numClubsInRound >= 8) return 'Quarti di Finale';
+  if (numClubsInRound >= 4) return 'Semifinali';
+  return 'Finale';
+}
+
+export function getCupMatchdayForRoundSize(numClubsInRound: number): number {
+  if (numClubsInRound >= 16) return 6;
+  if (numClubsInRound >= 8) return 13;
+  if (numClubsInRound >= 4) return 20;
+  return 27;
+}
+
 /**
- * Generates initial knockout matches for the tournament.
+ * Generates knockout matches for a given round of clubs.
  */
 export function generateCupKnockoutMatches(
   competitionId: string,
   competingClubIds: string[],
   seasonYear: number,
-  startMatchday: number = 4
+  startMatchday?: number
 ): Match[] {
   const matches: Match[] = [];
   const comp = INITIAL_COMPETITIONS[competitionId];
   const numClubs = competingClubIds.length;
-  const isRoundOf16 = numClubs >= 16;
-  const roundLabel = isRoundOf16 ? 'Ottavi di Finale' : 'Quarti di Finale';
+  const roundLabel = getCupRoundLabel(numClubs);
+  const scheduledDay = startMatchday ?? getCupMatchdayForRoundSize(numClubs);
+  const era = convertBCToOlympicEra(Math.abs(seasonYear));
 
   for (let i = 0; i < competingClubIds.length - 1; i += 2) {
     const matchIndex = Math.floor(i / 2) + 1;
-    const era = convertBCToOlympicEra(Math.abs(seasonYear));
     matches.push({
-      id: `cup_${competitionId}_r1_${matchIndex}`,
+      id: `cup_${competitionId}_y${Math.abs(seasonYear)}_r${numClubs}_${matchIndex}`,
       competitionId,
       competitionType: 'CUP',
       stagioneAnno: seasonYear,
-      giornata: startMatchday,
-      dataCalendario: `${comp?.nome || 'Coppa'} - ${roundLabel} (${era.displayText})`,
-      dataNumero: startMatchday,
+      giornata: scheduledDay,
+      dataCalendario: `${comp?.nome.split('(')[0].trim() || 'Coppa'} · ${roundLabel} (${era.displayText})`,
+      dataNumero: scheduledDay,
       clubCasaId: competingClubIds[i],
       clubOspiteId: competingClubIds[i + 1],
       disputata: false
@@ -148,8 +162,38 @@ export function generateCupKnockoutMatches(
 }
 
 /**
+ * Initializes Round 1 matches for all 4 official Cups in the career.
+ */
+export function initializeAllCupMatches(
+  allClubs: Record<string, Club>,
+  seasonYear: number
+): Match[] {
+  const allCupMatches: Match[] = [];
+  for (const compId of Object.keys(INITIAL_COMPETITIONS)) {
+    const participants = getParticipatingClubsForCompetition(compId, allClubs);
+    if (participants.length >= 2) {
+      allCupMatches.push(...generateCupKnockoutMatches(compId, participants, seasonYear));
+    }
+  }
+  return allCupMatches;
+}
+
+/**
+ * Ensures older saves without CUP matches receive Round 1 cup fixtures seamlessly.
+ */
+export function reconcileCupMatches(
+  matches: Match[],
+  allClubs: Record<string, Club>,
+  seasonYear: number
+): Match[] {
+  const existingCups = matches.filter(m => m.competitionType === 'CUP' && m.stagioneAnno === seasonYear);
+  if (existingCups.length > 0) return matches;
+  return [...matches, ...initializeAllCupMatches(allClubs, seasonYear)];
+}
+
+/**
  * Simulates a single-leg knockout cup match.
- * Resolves ties via overtime and penalties (no draws in cup competitions).
+ * Resolves ties via Corsa di Spareggio (no draws in cup competitions).
  */
 export function simulateCupMatch(
   match: Match,
@@ -168,21 +212,21 @@ export function simulateCupMatch(
 
   let winnerId = match.clubCasaId;
 
-  // Resolve draw via penalty shootout
+  // Resolve draw via Corsa di Spareggio ad Oltranza
   if (result.golCasa === result.golOspite) {
-    const penCasa = 4 + Math.floor(Math.random() * 2);
-    let penOspite = 4 + Math.floor(Math.random() * 2);
-    if (penCasa === penOspite) {
-      if (Math.random() < 0.5) penCasa + 1;
-      else penOspite + 1;
+    let spareggioCasa = 4 + Math.floor(Math.random() * 2);
+    let spareggioOspite = 4 + Math.floor(Math.random() * 2);
+    if (spareggioCasa === spareggioOspite) {
+      if (Math.random() < 0.5) spareggioCasa += 1;
+      else spareggioOspite += 1;
     }
 
-    if (penCasa > penOspite) {
+    if (spareggioCasa > spareggioOspite) {
       winnerId = match.clubCasaId;
-      result.golCasa++; // Award extra time / penalty decisor
+      result.golCasa += 1;
     } else {
       winnerId = match.clubOspiteId;
-      result.golOspite++;
+      result.golOspite += 1;
     }
   } else if (result.golCasa > result.golOspite) {
     winnerId = match.clubCasaId;
@@ -194,4 +238,89 @@ export function simulateCupMatch(
   match.risultato = result;
 
   return { match, result, winnerClubId: winnerId };
+}
+
+export function getCupMatchWinnerId(match: Match): string | null {
+  if (!match.disputata || !match.risultato) return null;
+  if (match.risultato.golCasa > match.risultato.golOspite) return match.clubCasaId;
+  if (match.risultato.golOspite > match.risultato.golCasa) return match.clubOspiteId;
+  return match.clubCasaId;
+}
+
+/**
+ * Checks every Cup bracket and generates the next knockout round or crowns the champion when Finale completes.
+ */
+export function advanceCupBrackets(
+  matches: Match[],
+  clubs: Record<string, Club>,
+  seasonYear: number,
+  trofeiAlboDOro: Record<string, { anno: number; vincitoreNome: string }[]>
+): {
+  updatedMatches: Match[];
+  updatedClubs: Record<string, Club>;
+  updatedAlbo: Record<string, { anno: number; vincitoreNome: string }[]>;
+  crownedChampions: { compId: string; compNome: string; clubId: string; clubNome: string }[];
+} {
+  const updatedMatches = [...matches];
+  const updatedClubs = { ...clubs };
+  const updatedAlbo = { ...trofeiAlboDOro };
+  const crownedChampions: { compId: string; compNome: string; clubId: string; clubNome: string }[] = [];
+  const absYear = Math.abs(seasonYear);
+  const era = convertBCToOlympicEra(seasonYear);
+
+  for (const comp of Object.values(INITIAL_COMPETITIONS)) {
+    const compMatches = updatedMatches.filter(
+      m => m.competitionType === 'CUP' && m.competitionId === comp.id && m.stagioneAnno === seasonYear
+    );
+    if (compMatches.length === 0) continue;
+
+    // Group by latest round (smallest team count = largest round progression)
+    const maxGiornata = Math.max(...compMatches.map(m => m.giornata));
+    const latestRoundMatches = compMatches.filter(m => m.giornata === maxGiornata);
+    const allFinished = latestRoundMatches.every(m => m.disputata && m.risultato);
+    if (!allFinished) continue;
+
+    if (latestRoundMatches.length === 1) {
+      // Finale finished -> crown champion if not already recorded for this year
+      const finalMatch = latestRoundMatches[0];
+      const winnerId = getCupMatchWinnerId(finalMatch);
+      if (winnerId && updatedClubs[winnerId]) {
+        const existingYearEntry = (updatedAlbo[comp.id] || []).some(e => e.anno === absYear);
+        if (!existingYearEntry) {
+          const champClub = { ...updatedClubs[winnerId] };
+          champClub.storiaTrofei = [...(champClub.storiaTrofei || []), `${comp.nome.split('(')[0].trim()} (${era.displayText})`];
+          champClub.saldoCassa += 1500000;
+          champClub.reputazione = Math.min(1000, champClub.reputazione + 50);
+          updatedClubs[winnerId] = champClub;
+
+          updatedAlbo[comp.id] = [
+            ...(updatedAlbo[comp.id] || []),
+            { anno: absYear, vincitoreNome: champClub.nome }
+          ];
+          crownedChampions.push({
+            compId: comp.id,
+            compNome: comp.nome.split('(')[0].trim(),
+            clubId: champClub.id,
+            clubNome: champClub.nome
+          });
+        }
+      }
+    } else if (latestRoundMatches.length >= 2) {
+      // Generate next knockout round from winners
+      const winners = latestRoundMatches
+        .map(m => getCupMatchWinnerId(m))
+        .filter((id): id is string => Boolean(id));
+      if (winners.length >= 2) {
+        const nextRoundMatches = generateCupKnockoutMatches(
+          comp.id,
+          winners,
+          seasonYear,
+          getCupMatchdayForRoundSize(winners.length)
+        );
+        updatedMatches.push(...nextRoundMatches);
+      }
+    }
+  }
+
+  return { updatedMatches, updatedClubs, updatedAlbo, crownedChampions };
 }

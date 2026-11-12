@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import type { CareerSave, Player } from '../types';
-import { RetroButton } from '../components/RetroButton';
-import { ArrowUpDown, Shield, Sliders, Layers, UserCheck } from 'lucide-react';
+import { TacticalSlate } from '../components/TacticalSlate';
+import { ArrowUpDown, Shield, Sliders, Layers } from 'lucide-react';
 import { getHarpastumRole, getHarpastumCategory, getHarpastumRoleBadgeStyle, groupPlayersByHarpastum } from '../engines/harpastumEngine';
+import { getFormationModifiers } from '../engines/matchSimulationEngine';
 
 interface SquadScreenProps {
   career: CareerSave;
   onSelectPlayer: (player: Player) => void;
   onUpdateFormation: (formation: '4-4-2' | '4-3-3' | '3-5-2' | '5-3-2' | '4-2-3-1' | '3-4-3' | '5-4-1' | '4-5-1') => void;
   onToggleTransferList?: (player: Player) => void;
+  onSwapStarters?: (newStartersIds: string[]) => void;
 }
 
 type SortField = 'ruoloPrimario' | 'valoreGenerale' | 'eta' | 'condizione' | 'morale' | 'statisticheStagione.gol' | 'statisticheStagione.mediaVoto' | 'contratto.stipendioSettimanale';
@@ -18,7 +20,7 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
   career,
   onSelectPlayer,
   onUpdateFormation,
-  onToggleTransferList
+  onSwapStarters
 }) => {
   const userClub = career.clubs[career.userClubId];
   const players = Object.values(career.players).filter(p => p.clubId === career.userClubId);
@@ -63,16 +65,23 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
     return sortAsc ? valA - valB : valB - valA;
   });
 
-  const allSortedForTactics = [...players].sort((a, b) => b.valoreGenerale - a.valoreGenerale);
-  const starters = allSortedForTactics.slice(0, 12);
-  const bench = allSortedForTactics.slice(12);
+  const starterIdSet = new Set<string>(
+    (userClub.titolariIds && userClub.titolariIds.length >= 12
+      ? userClub.titolariIds.slice(0, 12)
+      : [...players].sort((a, b) => b.valoreGenerale - a.valoreGenerale).slice(0, 12).map(p => p.id))
+  );
 
   const grouped = groupPlayersByHarpastum(players);
+  const activeFormationMods = getFormationModifiers(userClub.formazioneTattica);
+  const fmtPct = (m: number) => {
+    const pct = Math.round((m - 1) * 100);
+    return pct >= 0 ? `+${pct}%` : `${pct}%`;
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col gap-2.5 min-h-0 overflow-hidden">
       {/* Top Header Controls */}
-      <div className="retro-box p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="retro-box p-2.5 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-3">
           <Shield size={18} className="text-[#d4af37]" />
           <div>
@@ -142,7 +151,7 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
 
       {/* Role Filter Pills (in Tabella mode) */}
       {activeTab === 'TABELLA' && (
-        <div className="flex items-center gap-1.5 text-xs overflow-x-auto pb-1">
+        <div className="flex items-center gap-1.5 text-xs overflow-x-auto pb-1 shrink-0">
           <span className="font-roman text-[10px] text-[#64748b] uppercase mr-1">Filtro Ruolo Harpastum:</span>
           <button
             onClick={() => setCategoryFilter('ALL')}
@@ -199,10 +208,10 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
 
       {/* 1. DENSE MANAGERIAL SQUAD TABLE */}
       {activeTab === 'TABELLA' && (
-        <div className="retro-box overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="retro-box flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full text-left text-xs border-collapse">
-              <thead>
+              <thead className="sticky top-0 z-10">
                 <tr className="retro-panel-header text-[10px] text-[#94a3b8] uppercase font-roman border-b border-[#252e42] select-none">
                   <th className="py-2 px-3 w-16 text-center">RUOLO</th>
                   <th className="py-2 px-3">ATLETA D'HARPASTUM</th>
@@ -268,10 +277,10 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#182030] font-data text-xs">
-                {sortedPlayers.map((p, idx) => {
+                {sortedPlayers.map(p => {
                   const hRole = getHarpastumRole(p.ruoloPrimario);
                   const badge = getHarpastumRoleBadgeStyle(p.ruoloPrimario);
-                  const isStarter = idx < 11;
+                  const isStarter = starterIdSet.has(p.id);
                   return (
                     <tr
                       key={p.id}
@@ -340,7 +349,10 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
                         {p.statisticheStagione.mediaVoto > 0 ? p.statisticheStagione.mediaVoto.toFixed(1) : '-'}
                       </td>
                       <td className="py-2 px-3 text-right text-[#94a3b8]">
-                        {p.contratto.stipendioSettimanale.toLocaleString()} HS
+                        <div>{p.contratto.stipendioSettimanale.toLocaleString()} HS</div>
+                        <div className={`text-[9px] ${p.contratto.annoScadenza <= career.currentYear + 1 ? 'text-[#f59e0b] font-bold' : 'text-[#64748b]'}`}>
+                          Scad. {Math.abs(p.contratto.annoScadenza)} a.C.
+                        </div>
                       </td>
                       <td className="py-2 px-3 text-center">
                         {p.infortunato ? (
@@ -374,10 +386,10 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
 
       {/* 2. DIVISIONE DETTAGLIATA PER RUOLI HARPASTUM */}
       {activeTab === 'CATEGORIE' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="h-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 overflow-y-auto md:overflow-hidden">
             {/* CUSTODES */}
-            <div className="retro-box p-3 border-t-2 border-[#ca8a04]">
+            <div className="retro-box p-3 border-t-2 border-[#ca8a04] flex flex-col min-h-0 overflow-hidden">
               <div className="flex items-center justify-between pb-2 border-b border-[#252e42] mb-3">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-[#ca8a04]" />
@@ -388,7 +400,7 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
               <p className="text-[10px] text-[#94a3b8] mb-3 leading-relaxed">
                 Ultimo baluardo prima del varco di fondo: intercettano al volo i lanci e placcano in tuffo disperato.
               </p>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 flex-1 min-h-0 overflow-y-auto pr-1">
                 {grouped.custodes.map(p => (
                   <button
                     key={p.id}
@@ -406,18 +418,18 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
             </div>
 
             {/* LUCTATORES */}
-            <div className="retro-box p-3 border-t-2 border-[#3b82f6]">
-              <div className="flex items-center justify-between pb-2 border-b border-[#252e42] mb-3">
+            <div className="retro-box p-3 border-t-2 border-[#3b82f6] flex flex-col min-h-0 overflow-hidden">
+              <div className="flex items-center justify-between pb-2 border-b border-[#252e42] mb-2 shrink-0">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-[#3b82f6]" />
                   <h3 className="font-roman text-xs font-bold text-[#bfdbfe]">LOTTATORI & MURA</h3>
                 </div>
                 <span className="text-[10px] font-data text-[#60a5fa] font-bold">{grouped.luctatores.length}</span>
               </div>
-              <p className="text-[10px] text-[#94a3b8] mb-3 leading-relaxed">
+              <p className="text-[10px] text-[#94a3b8] mb-2 leading-relaxed shrink-0">
                 Colossi di stazza gladiatoria per le mischie: sbarrano i varchi, atterrano gli scattisti con prese alla vita.
               </p>
-              <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
+              <div className="space-y-1.5 flex-1 min-h-0 overflow-y-auto pr-1">
                 {grouped.luctatores.map(p => {
                   const role = getHarpastumRole(p.ruoloPrimario);
                   return (
@@ -441,18 +453,18 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
             </div>
 
             {/* TRACTORES */}
-            <div className="retro-box p-3 border-t-2 border-[#10b981]">
-              <div className="flex items-center justify-between pb-2 border-b border-[#252e42] mb-3">
+            <div className="retro-box p-3 border-t-2 border-[#10b981] flex flex-col min-h-0 overflow-hidden">
+              <div className="flex items-center justify-between pb-2 border-b border-[#252e42] mb-2 shrink-0">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-[#10b981]" />
                   <h3 className="font-roman text-xs font-bold text-[#a7f3d0]">TRATTORI DI PALLA</h3>
                 </div>
                 <span className="text-[10px] font-data text-[#34d399] font-bold">{grouped.tractores.length}</span>
               </div>
-              <p className="text-[10px] text-[#94a3b8] mb-3 leading-relaxed">
+              <p className="text-[10px] text-[#94a3b8] mb-2 leading-relaxed shrink-0">
                 I maestri dell'inganno: circolazione della sfera sulla linea mediana, passaggi a due mani e finte fulminee.
               </p>
-              <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
+              <div className="space-y-1.5 flex-1 min-h-0 overflow-y-auto pr-1">
                 {grouped.tractores.map(p => {
                   const role = getHarpastumRole(p.ruoloPrimario);
                   return (
@@ -476,18 +488,18 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
             </div>
 
             {/* PRAEVENIENTES */}
-            <div className="retro-box p-3 border-t-2 border-[#ef4444]">
-              <div className="flex items-center justify-between pb-2 border-b border-[#252e42] mb-3">
+            <div className="retro-box p-3 border-t-2 border-[#ef4444] flex flex-col min-h-0 overflow-hidden">
+              <div className="flex items-center justify-between pb-2 border-b border-[#252e42] mb-2 shrink-0">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]" />
                   <h3 className="font-roman text-xs font-bold text-[#fecaca]">CURSORI & METE</h3>
                 </div>
                 <span className="text-[10px] font-data text-[#f87171] font-bold">{grouped.praevenientes.length}</span>
               </div>
-              <p className="text-[10px] text-[#94a3b8] mb-3 leading-relaxed">
+              <p className="text-[10px] text-[#94a3b8] mb-2 leading-relaxed shrink-0">
                 Gli scattisti d'assalto: fuggono sulla sabbia laterale e piombano a capofitto oltre la linea di fondo avversaria.
               </p>
-              <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
+              <div className="space-y-1.5 flex-1 min-h-0 overflow-y-auto pr-1">
                 {grouped.praevenientes.map(p => {
                   const role = getHarpastumRole(p.ruoloPrimario);
                   return (
@@ -513,170 +525,32 @@ export const SquadScreen: React.FC<SquadScreenProps> = ({
         </div>
       )}
 
-      {/* 3. TACTICAL ARENA DISPOSITION (ARENA SAND PITCH) */}
+      {/* 3. INTERACTIVE TACTICAL ARENA DISPOSITION */}
       {activeTab === 'TATTICA' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Harpastum Arena Graphic */}
-          <div className="lg:col-span-2 retro-box p-4 flex flex-col items-center">
-            <div className="w-full flex items-center justify-between text-xs pb-2 border-b border-[#252e42] mb-3">
-              <span className="font-roman font-bold text-[#d4af37]">
-                ARENA SABBIOSA D'HARPASTUM · DISPOSIZIONE DEI TRIBUNI
-              </span>
-              <span className="text-[#94a3b8] font-data">{userClub.formazioneTattica}</span>
-            </div>
-
-            {/* The Roman Harpastum Arena Graphic */}
-            <div className="w-full max-w-lg aspect-3/4 bg-[#78350f]/75 border-4 border-[#92400e] rounded-sm relative p-4 flex flex-col justify-between overflow-hidden shadow-2xl">
-              {/* Sandy texture lines */}
-              <div className="absolute inset-0 bg-[radial-gradient(#b45309_1px,transparent_1px)] [background-size:16px_16px] opacity-40" />
-
-              {/* Linea Castrense Opposita (Meta Avversaria - top) */}
-              <div className="absolute inset-x-4 top-2 h-0.5 bg-[#fef08a] border-t-2 border-dashed border-[#facc15]" />
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 text-[9px] font-roman text-[#fef08a] uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-xs">
-                LINEA DI META AVVERSARIA (Castra Capta)
-              </div>
-
-              {/* Mesê Grammê (Linea Mediana di Partenza) */}
-              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1 bg-[#d4af37]/60" />
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full border-2 border-[#d4af37]/50 flex items-center justify-center">
-                <span className="text-[8px] font-roman text-[#fef08a]/70 tracking-widest uppercase">
-                  Mesê Grammê
-                </span>
-              </div>
-
-              {/* Linea Castrense Propria (Meta Amica - bottom) */}
-              <div className="absolute inset-x-4 bottom-2 h-0.5 bg-[#fef08a] border-b-2 border-dashed border-[#facc15]" />
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[9px] font-roman text-[#fef08a] uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-xs">
-                LINEA DI FONDO DIFESA DALLA COORTE
-              </div>
-
-              {/* Starters distributed on the Harpastum Arena */}
-              <div className="relative z-10 w-full h-full flex flex-col justify-between py-6 text-center">
-                {/* 1. Praevenientes / Cursori (Top / Incursione) */}
-                <div className="flex justify-around items-center">
-                  {starters
-                    .filter(p => getHarpastumCategory(p) === 'PRAEVENIENS')
-                    .map(p => {
-                      const role = getHarpastumRole(p.ruoloPrimario);
-                      return (
-                        <button
-                          key={p.id}
-                          onClick={() => onSelectPlayer(p)}
-                          className="bg-[#111827]/95 border-2 border-[#ef4444] px-2.5 py-1.5 rounded-xs shadow-lg hover:scale-105 transition-transform text-center cursor-pointer"
-                        >
-                          <div className="text-[9px] font-black text-[#fca5a5] font-roman">
-                            {role.code.replace('PRAEV_', 'CUR-')}
-                          </div>
-                          <div className="text-[11px] font-bold text-white truncate max-w-[90px]">{p.cognome}</div>
-                          <div className="text-[9px] font-data text-[#facc15]">{p.valoreGenerale} OVR</div>
-                        </button>
-                      );
-                    })}
-                </div>
-
-                {/* 2. Tractores / Trattori (Center / Mesê Grammê) */}
-                <div className="flex justify-around items-center">
-                  {starters
-                    .filter(p => getHarpastumCategory(p) === 'TRACTOR')
-                    .map(p => {
-                      const role = getHarpastumRole(p.ruoloPrimario);
-                      return (
-                        <button
-                          key={p.id}
-                          onClick={() => onSelectPlayer(p)}
-                          className="bg-[#111827]/95 border-2 border-[#10b981] px-2.5 py-1.5 rounded-xs shadow-lg hover:scale-105 transition-transform text-center cursor-pointer"
-                        >
-                          <div className="text-[9px] font-black text-[#6ee7b7] font-roman">
-                            {role.code.replace('TRAC_', 'TRA-')}
-                          </div>
-                          <div className="text-[11px] font-bold text-white truncate max-w-[90px]">{p.cognome}</div>
-                          <div className="text-[9px] font-data text-[#34d399]">{p.valoreGenerale} OVR</div>
-                        </button>
-                      );
-                    })}
-                </div>
-
-                {/* 3. Luctatores / Lottatori (Bottom-Center / Trincea) */}
-                <div className="flex justify-around items-center">
-                  {starters
-                    .filter(p => getHarpastumCategory(p) === 'LUCTATOR')
-                    .map(p => {
-                      const role = getHarpastumRole(p.ruoloPrimario);
-                      return (
-                        <button
-                          key={p.id}
-                          onClick={() => onSelectPlayer(p)}
-                          className="bg-[#111827]/95 border-2 border-[#3b82f6] px-2.5 py-1.5 rounded-xs shadow-lg hover:scale-105 transition-transform text-center cursor-pointer"
-                        >
-                          <div className="text-[9px] font-black text-[#93c5fd] font-roman">
-                            {role.code.replace('LUC_', 'LUC-')}
-                          </div>
-                          <div className="text-[11px] font-bold text-white truncate max-w-[90px]">{p.cognome}</div>
-                          <div className="text-[9px] font-data text-[#60a5fa]">{p.valoreGenerale} OVR</div>
-                        </button>
-                      );
-                    })}
-                </div>
-
-                {/* 4. Custos / Custode (Bottom / Ultimo Baluardo) */}
-                <div className="flex justify-center items-center">
-                  {starters
-                    .filter(p => getHarpastumCategory(p) === 'CUSTOS')
-                    .map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => onSelectPlayer(p)}
-                        className="bg-[#111827]/95 border-2 border-[#eab308] px-4 py-1.5 rounded-xs shadow-lg hover:scale-105 transition-transform text-center cursor-pointer"
-                      >
-                        <div className="text-[10px] font-black text-[#fef08a] font-roman">CUSTOS</div>
-                        <div className="text-[11px] font-bold text-white">{p.cognome}</div>
-                        <div className="text-[9px] font-data text-[#facc15]">{p.valoreGenerale} OVR</div>
-                      </button>
-                    ))}
-                </div>
-              </div>
+        <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
+          {/* Active Formation Modifier Summary */}
+          <div className="retro-inset px-3 py-1.5 border border-[#521016] flex flex-wrap items-center justify-between gap-2 text-[11px] shrink-0">
+            <span className="font-roman font-bold text-[#d4af37]">
+              MODULO ATTIVO: {userClub.formazioneTattica} · {activeFormationMods.label}
+            </span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-data tabular-nums text-[#e2e8f0]">
+              <span>Cursori <strong className={activeFormationMods.praevenientes >= 1 ? 'text-[#10b981]' : 'text-[#f87171]'}>{fmtPct(activeFormationMods.praevenientes)}</strong></span>
+              <span aria-hidden="true">·</span>
+              <span>Trattori <strong className={activeFormationMods.tractores >= 1 ? 'text-[#10b981]' : 'text-[#f87171]'}>{fmtPct(activeFormationMods.tractores)}</strong></span>
+              <span aria-hidden="true">·</span>
+              <span>Lottatori <strong className={activeFormationMods.luctatores >= 1 ? 'text-[#10b981]' : 'text-[#f87171]'}>{fmtPct(activeFormationMods.luctatores)}</strong></span>
+              <span aria-hidden="true">·</span>
+              <span>Custode <strong className={activeFormationMods.custos >= 1 ? 'text-[#10b981]' : 'text-[#f87171]'}>{fmtPct(activeFormationMods.custos)}</strong></span>
             </div>
           </div>
 
-          {/* Harpastum Tactical Codex & Sub Bench */}
-          <div className="retro-box p-4 flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center gap-2 pb-2 border-b border-[#252e42] mb-3">
-                <UserCheck size={16} className="text-[#d4af37]" />
-                <h3 className="font-roman text-xs font-bold text-white">RESERVE & SOSTITUTI D'ARENA</h3>
-              </div>
-
-              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                {bench.map(p => {
-                  const role = getHarpastumRole(p.ruoloPrimario);
-                  const badge = getHarpastumRoleBadgeStyle(p.ruoloPrimario);
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => onSelectPlayer(p)}
-                      className="w-full text-left p-2 retro-inset hover:bg-[#1b2334] transition-colors flex items-center justify-between text-xs cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-bold ${badge.bg} ${badge.text}`}>
-                          {badge.label}
-                        </span>
-                        <div>
-                          <div className="font-semibold text-white">{p.nome} {p.cognome}</div>
-                          <div className="text-[9px] text-[#64748b]">{role.italianName}</div>
-                        </div>
-                      </div>
-                      <span className="font-data font-bold text-[#d4af37]">{p.valoreGenerale} OVR</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Tactical Codex Note */}
-            <div className="retro-inset p-3 text-[11px] text-[#94a3b8] leading-relaxed">
-              <span className="font-roman text-[#d4af37] font-bold block mb-1">DOTTRINA HARPASTICA</span>
-              I lottatori assorbono la carica avversaria, mentre i trattori smistano la piccola sfera con passaggi a due mani prima dell'assalto finale dei cursori.
-            </div>
+          <div className="flex-1 min-h-0">
+            <TacticalSlate
+              userClub={userClub}
+              squad={players}
+              onSwapStarters={onSwapStarters}
+              onSelectPlayer={onSelectPlayer}
+            />
           </div>
         </div>
       )}

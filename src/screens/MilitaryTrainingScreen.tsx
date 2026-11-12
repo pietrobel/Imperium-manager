@@ -166,20 +166,20 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
   const healthyPlayers = squad.filter(p => !p.infortunato);
 
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col gap-3 min-h-0 overflow-hidden">
       {/* Top Banner & Header */}
-      <div className="retro-box p-3 bg-gradient-to-r from-[#3d0b10] via-[#240507] to-[#170305] border-2 border-[#85222b] shadow-xl flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-[#800020] border border-[#d4af37] rounded-xs shadow">
-            <Swords size={22} className="text-[#d4af37]" />
+      <div className="retro-box p-2.5 bg-gradient-to-r from-[#3d0b10] via-[#240507] to-[#170305] border-2 border-[#85222b] shadow-xl flex flex-col md:flex-row items-center justify-between gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-[#800020] border border-[#d4af37] rounded-xs shadow shrink-0">
+            <Swords size={18} className="text-[#d4af37]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-roman text-base font-bold text-white tracking-wide">
+              <h1 className="font-roman text-sm sm:text-base font-bold text-white tracking-wide">
                 CASTRA EXERCITUS & VALETUDINARIUM · {userClub.nome.toUpperCase()}
               </h1>
-              <span className="text-[10px] bg-[#d4af37]/20 border border-[#d4af37]/60 text-[#fef08a] px-2 py-0.5 rounded-xs font-roman font-bold">
-                Dottrina Legionaria
+              <span className="text-[10px] text-[#fef08a] font-roman font-bold hidden sm:inline">
+                · Dottrina Legionaria
               </span>
             </div>
             <p className="text-[11px] text-[#cbd5e1] font-roman">
@@ -189,14 +189,14 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 bg-[#0a0d14] p-1 border border-[#2d3748] rounded-xs">
+        <div className="flex items-center gap-1.5 bg-[#0a0d14] p-1 border border-[#2d3748] rounded-xs shrink-0">
           <button
             type="button"
             onClick={() => {
               audio.playClick();
               setActiveTab('DRILLS');
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-roman font-bold transition-all rounded-xs cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-roman font-bold transition-all rounded-xs cursor-pointer whitespace-nowrap ${
               activeTab === 'DRILLS'
                 ? 'bg-[#800020] text-[#d4af37] border border-[#d4af37]/60 shadow-sm'
                 : 'text-[#94a3b8] hover:text-[#e2e8f0]'
@@ -212,7 +212,7 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
               audio.playClick();
               setActiveTab('DUTIES');
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-roman font-bold transition-all rounded-xs cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-roman font-bold transition-all rounded-xs cursor-pointer whitespace-nowrap ${
               activeTab === 'DUTIES'
                 ? 'bg-[#800020] text-[#d4af37] border border-[#d4af37]/60 shadow-sm'
                 : 'text-[#94a3b8] hover:text-[#e2e8f0]'
@@ -228,7 +228,7 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
               audio.playClick();
               setActiveTab('VALETUDINARIUM');
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-roman font-bold transition-all rounded-xs cursor-pointer relative ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-roman font-bold transition-all rounded-xs cursor-pointer relative whitespace-nowrap ${
               activeTab === 'VALETUDINARIUM'
                 ? 'bg-[#800020] text-[#d4af37] border border-[#d4af37]/60 shadow-sm'
                 : 'text-[#94a3b8] hover:text-[#e2e8f0]'
@@ -244,7 +244,7 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
       </div>
 
       {feedbackBanner && (
-        <div className="bg-[#6b161f] border-2 border-[#d4af37] p-2.5 text-center text-[#fef08a] font-roman font-bold text-xs tracking-wider animate-bounce shadow-xl rounded-xs">
+        <div className="bg-[#6b161f] border-2 border-[#d4af37] p-2 text-center text-[#fef08a] font-roman font-bold text-xs tracking-wider shadow-xl rounded-xs shrink-0">
           ⭐ {feedbackBanner} ⭐
         </div>
       )}
@@ -253,11 +253,11 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
       {/* TAB 1: MILITARY DRILLS & TRAINING REGIME                                  */}
       {/* ========================================================================= */}
       {activeTab === 'DRILLS' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-xs">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-xs flex-1 min-h-0 overflow-hidden">
           {/* Left Column: Drill Selector & Controls */}
-          <div className="space-y-4">
+          <div className="flex flex-col gap-3 min-h-0 overflow-hidden">
             {/* General Doctrine Settings */}
-            <div className="retro-box p-4 border border-[#731922] bg-[#1a0507] space-y-3">
+            <div className="retro-box p-3 border border-[#731922] bg-[#1a0507] space-y-2.5 shrink-0">
               <div className="flex items-center justify-between border-b border-[#521016] pb-2">
                 <span className="font-roman font-bold text-sm text-[#d4af37]">COMANDO DELLA COORTE</span>
                 <span className="text-[10px] text-[#94a3b8] font-data">Legio Harpastica</span>
@@ -315,11 +315,11 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
             </div>
 
             {/* List of 6 Roman Legionary Drills */}
-            <div className="retro-box p-3 border border-[#731922] bg-[#1a0507] space-y-2">
-              <div className="text-[11px] font-roman font-bold text-[#d4af37] uppercase tracking-wider pb-1 border-b border-[#521016]">
+            <div className="retro-box p-3 border border-[#731922] bg-[#1a0507] flex flex-col flex-1 min-h-0 overflow-hidden gap-2">
+              <div className="text-[11px] font-roman font-bold text-[#d4af37] uppercase tracking-wider pb-1 border-b border-[#521016] shrink-0">
                 DOTTRINE D'ADDESTRAMENTO LEGIONARIO (SELEZIONA)
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1">
                 {(Object.keys(MILITARY_DRILLS) as MilitaryDrillId[]).map(dId => {
                   const drill = MILITARY_DRILLS[dId];
                   const isSelected = selectedDrill === dId;
@@ -356,9 +356,9 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
           </div>
 
           {/* Right Column (2 cols wide): Squad Readiness & Drill Feedback */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 flex flex-col gap-3 min-h-0 overflow-hidden">
             {/* Active Drill Spotlight Card */}
-            <div className="retro-box p-4 border-2 border-[#d4af37] bg-gradient-to-r from-[#2b080b] to-[#170305] shadow-xl">
+            <div className="retro-box p-3 border-2 border-[#d4af37] bg-gradient-to-r from-[#2b080b] to-[#170305] shadow-xl shrink-0">
               <div className="flex items-center justify-between pb-2 border-b border-[#521016]">
                 <div>
                   <span className="text-[10px] text-[#d4af37] font-roman uppercase tracking-widest">
@@ -398,18 +398,18 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
 
             {/* Session Logs / Report Feed */}
             {sessionLogs.length > 0 && (
-              <div className="retro-box p-3 border border-[#731922] bg-[#140305]">
-                <div className="font-roman text-xs font-bold text-[#d4af37] uppercase tracking-wider pb-1 border-b border-[#521016] mb-2 flex items-center justify-between">
+              <div className="retro-box p-2.5 border border-[#731922] bg-[#140305] shrink-0">
+                <div className="font-roman text-xs font-bold text-[#d4af37] uppercase tracking-wider pb-1 border-b border-[#521016] mb-1.5 flex items-center justify-between">
                   <span>RESOCONTO DELL'ULTIMA SEDUTA D'ADDESTRAMENTO</span>
                   <button onClick={() => setSessionLogs([])} className="text-[#94a3b8] hover:text-white text-[10px] cursor-pointer">
                     Pulisci
                   </button>
                 </div>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto font-data text-[11px] pr-1">
+                <div className="space-y-1 max-h-28 overflow-y-auto font-data text-[11px] pr-1">
                   {sessionLogs.map(log => (
                     <div
                       key={log.id}
-                      className={`p-1.5 rounded-xs flex items-center gap-2 ${
+                      className={`p-1 rounded-xs flex items-center gap-2 ${
                         log.type === 'INJURY'
                           ? 'bg-[#450a0a] text-[#fca5a5] border-l-2 border-l-[#ef4444]'
                           : log.type === 'GROWTH'
@@ -426,8 +426,8 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
             )}
 
             {/* Squad Condition & Injury Risk Table */}
-            <div className="retro-box p-3 border border-[#252e42] bg-[#111622]">
-              <div className="flex items-center justify-between pb-2 border-b border-[#252e42] mb-2">
+            <div className="retro-box p-3 border border-[#252e42] bg-[#111622] flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex items-center justify-between pb-2 border-b border-[#252e42] mb-2 shrink-0">
                 <span className="font-roman font-bold text-xs text-white">
                   STATO ATLETICO DELLA COORTE ({squad.length} ATLETI)
                 </span>
@@ -436,7 +436,7 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
                 </span>
               </div>
 
-              <div className="overflow-x-auto max-h-80 overflow-y-auto">
+              <div className="flex-1 min-h-0 overflow-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="retro-panel-header text-[10px] text-[#94a3b8] uppercase font-roman border-b border-[#252e42]">
@@ -525,9 +525,9 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
       {/* TAB 2: HARPASTUM SPECIFIC TACTICAL DUTIES                                 */}
       {/* ========================================================================= */}
       {activeTab === 'DUTIES' && (
-        <div className="space-y-4 text-xs">
-          <div className="retro-box p-4 border border-[#731922] bg-[#1a0507]">
-            <div className="flex items-center justify-between pb-2 border-b border-[#521016]">
+        <div className="flex flex-col gap-3 text-xs flex-1 min-h-0 overflow-hidden">
+          <div className="retro-box p-3 border border-[#731922] bg-[#1a0507] shrink-0">
+            <div className="flex items-center justify-between pb-1.5 border-b border-[#521016]">
               <div>
                 <h2 className="font-roman text-sm font-bold text-[#d4af37]">
                   DISPOSIZIONI TATTICHE DEI RUOLI STORICI (TAXIS D'HARPASTUM)
@@ -539,38 +539,38 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
             </div>
 
             {/* Tactical Duty Explanatory Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 mt-2.5">
               {/* Custodes */}
-              <div className="p-3 retro-inset bg-[#0c1017] border-t-2 border-[#ca8a04]">
+              <div className="p-2.5 retro-inset bg-[#0c1017] border-t-2 border-[#ca8a04]">
                 <div className="font-roman font-bold text-[#fef08a] text-xs">CUSTODI DI META</div>
-                <div className="text-[10px] text-[#94a3b8] mt-1 space-y-1">
+                <div className="text-[10px] text-[#94a3b8] mt-1 space-y-0.5">
                   <div><strong className="text-white">Baluardo Stazionario:</strong> +15 Difesa Meta, +5 Placcaggio Estremo.</div>
                   <div><strong className="text-white">Libero Intercettore:</strong> +16 Intercetto Volante, +5 Contropiede Meta.</div>
                 </div>
               </div>
 
               {/* Luctatores */}
-              <div className="p-3 retro-inset bg-[#0c1017] border-t-2 border-[#3b82f6]">
+              <div className="p-2.5 retro-inset bg-[#0c1017] border-t-2 border-[#3b82f6]">
                 <div className="font-roman font-bold text-[#bfdbfe] text-xs">LOTTATORI & MURA</div>
-                <div className="text-[10px] text-[#94a3b8] mt-1 space-y-1">
+                <div className="text-[10px] text-[#94a3b8] mt-1 space-y-0.5">
                   <div><strong className="text-white">Muro da Mischia:</strong> +20 Placcaggi alla Vita, +18 Difesa Centrale.</div>
                   <div><strong className="text-white">Cacciatore di Fascia:</strong> +14 Placcaggi Ali, +8 Intercetti Laterali.</div>
                 </div>
               </div>
 
               {/* Tractores */}
-              <div className="p-3 retro-inset bg-[#0c1017] border-t-2 border-[#10b981]">
+              <div className="p-2.5 retro-inset bg-[#0c1017] border-t-2 border-[#10b981]">
                 <div className="font-roman font-bold text-[#a7f3d0] text-xs">TRATTORI MEDIANI</div>
-                <div className="text-[10px] text-[#94a3b8] mt-1 space-y-1">
+                <div className="text-[10px] text-[#94a3b8] mt-1 space-y-0.5">
                   <div><strong className="text-white">Ariete Apripista:</strong> +10 Varchi Meta, +12 Blocchi Corporali.</div>
                   <div><strong className="text-white">Regista Phaininda:</strong> +18 Intercetti / Finte, +8 Assist Meta.</div>
                 </div>
               </div>
 
               {/* Praevenientes */}
-              <div className="p-3 retro-inset bg-[#0c1017] border-t-2 border-[#ef4444]">
+              <div className="p-2.5 retro-inset bg-[#0c1017] border-t-2 border-[#ef4444]">
                 <div className="font-roman font-bold text-[#fecaca] text-xs">CURSORI & ARIETI</div>
-                <div className="text-[10px] text-[#94a3b8] mt-1 space-y-1">
+                <div className="text-[10px] text-[#94a3b8] mt-1 space-y-0.5">
                   <div><strong className="text-white">Freccia Elusiva:</strong> +18 Scatto a Meta, +10 Dribbling Volante.</div>
                   <div><strong className="text-white">Embolon Sfondatore:</strong> +22 Mete da Sfondamento Fisico.</div>
                 </div>
@@ -579,13 +579,13 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
           </div>
 
           {/* Player Assignment Table */}
-          <div className="retro-box p-3 border border-[#252e42] bg-[#111622]">
-            <div className="font-roman font-bold text-xs text-white pb-2 border-b border-[#252e42] mb-2 flex items-center justify-between">
+          <div className="retro-box p-3 border border-[#252e42] bg-[#111622] flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="font-roman font-bold text-xs text-white pb-2 border-b border-[#252e42] mb-2 flex items-center justify-between shrink-0">
               <span>ASSEGNAZIONE INCARICHI SPECIFICI ALLA COORTE ({squad.length} ATLETI)</span>
               <span className="text-[10px] text-[#94a3b8]">Modifica l'incarico dal menu a tendina</span>
             </div>
 
-            <div className="overflow-x-auto max-h-96 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="retro-panel-header text-[10px] text-[#94a3b8] uppercase font-roman border-b border-[#252e42]">
@@ -657,10 +657,10 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
       {/* TAB 3: VALETUDINARIUM & MEDICAL WARD                                      */}
       {/* ========================================================================= */}
       {activeTab === 'VALETUDINARIUM' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-xs">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-xs flex-1 min-h-0 overflow-hidden">
           {/* Left Column: Medical Staff & Upgrades */}
-          <div className="space-y-4">
-            <div className="retro-box p-4 border border-[#731922] bg-[#1a0507] space-y-3">
+          <div className="flex flex-col gap-3 min-h-0 overflow-y-auto pr-1">
+            <div className="retro-box p-3.5 border border-[#731922] bg-[#1a0507] space-y-2.5">
               <div className="flex items-center justify-between border-b border-[#521016] pb-2">
                 <span className="font-roman font-bold text-sm text-[#d4af37]">CORPO MEDICO DELL'ACCAMPAMENTO</span>
                 <HeartPulse size={16} className="text-[#ef4444]" />
@@ -718,9 +718,9 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
           </div>
 
           {/* Right Column: Degenti & Emergency Treatment */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="retro-box p-4 border border-[#731922] bg-[#1a0507]">
-              <div className="flex items-center justify-between pb-2 border-b border-[#521016]">
+          <div className="lg:col-span-2 flex flex-col min-h-0 overflow-hidden">
+            <div className="retro-box p-3.5 border border-[#731922] bg-[#1a0507] flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex items-center justify-between pb-2 border-b border-[#521016] shrink-0">
                 <div>
                   <h2 className="font-roman text-sm font-bold text-[#d4af37]">
                     DEGENTI NELLE TENDE DEL VALETUDINARIUM
@@ -735,7 +735,7 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
               </div>
 
               {injuredPlayers.length === 0 ? (
-                <div className="text-center py-10 space-y-2 text-[#94a3b8]">
+                <div className="text-center py-10 space-y-2 text-[#94a3b8] flex-1 flex flex-col justify-center">
                   <Award size={36} className="text-[#10b981] mx-auto opacity-75" />
                   <div className="font-roman text-sm text-white font-bold">Nessun atleta in infermeria!</div>
                   <p className="text-xs">
@@ -743,7 +743,7 @@ export const MilitaryTrainingScreen: React.FC<MilitaryTrainingScreenProps> = ({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3 mt-3">
+                <div className="space-y-2.5 mt-3 flex-1 min-h-0 overflow-y-auto pr-1">
                   {injuredPlayers.map(player => {
                     const roleBadge = getHarpastumRoleBadgeStyle(player.ruoloPrimario);
                     return (

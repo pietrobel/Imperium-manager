@@ -9,37 +9,134 @@ export interface MatchSimulationInput {
   competitionName: string;
 }
 
+export interface FormationModifiers {
+  label: string;
+  praevenientes: number;
+  tractores: number;
+  luctatores: number;
+  custos: number;
+}
+
+const FORMATION_MODIFIERS: Record<Club['formazioneTattica'], FormationModifiers> = {
+  '4-4-2': {
+    label: 'Manipolo Bilanciato',
+    praevenientes: 1.02,
+    tractores: 1.02,
+    luctatores: 1.02,
+    custos: 1.02
+  },
+  '4-3-3': {
+    label: "Tridente d'Assalto",
+    praevenientes: 1.08,
+    tractores: 1.0,
+    luctatores: 0.96,
+    custos: 0.98
+  },
+  '3-4-3': {
+    label: 'Sfondamento Totale',
+    praevenientes: 1.12,
+    tractores: 1.03,
+    luctatores: 0.92,
+    custos: 0.95
+  },
+  '3-5-2': {
+    label: 'Falange dei Trattori',
+    praevenientes: 1.01,
+    tractores: 1.1,
+    luctatores: 0.96,
+    custos: 0.98
+  },
+  '4-2-3-1': {
+    label: 'Coorte Tattica',
+    praevenientes: 1.05,
+    tractores: 1.06,
+    luctatores: 0.98,
+    custos: 0.99
+  },
+  '5-3-2': {
+    label: 'Vallo dei Lottatori',
+    praevenientes: 0.95,
+    tractores: 0.98,
+    luctatores: 1.09,
+    custos: 1.05
+  },
+  '5-4-1': {
+    label: 'Testuggine Romana',
+    praevenientes: 0.91,
+    tractores: 1.01,
+    luctatores: 1.12,
+    custos: 1.08
+  },
+  '4-5-1': {
+    label: 'Sbarramento Mediano',
+    praevenientes: 0.94,
+    tractores: 1.09,
+    luctatores: 1.04,
+    custos: 1.03
+  }
+};
+
+export function getFormationModifiers(formation?: Club['formazioneTattica']): FormationModifiers {
+  return FORMATION_MODIFIERS[formation || '4-4-2'] || FORMATION_MODIFIERS['4-4-2'];
+}
+
 /**
  * MOTORE DI SIMULAZIONE HARPASTUM
  * Simula lo scontro atletico secondo le regole dell'Harpastum antico:
  * - Campo in sabbia, due linee di meta (lineae castrenses), linea mediana (mesê grammê)
  * - Calcolo di Mete (Puncta), Placcaggi alla vita, Intercetti al volo e Mischie
  * - 4 categorie di atleti: Custodes, Luctatores, Tractores, Praevenientes (12 titolari)
- * - Integrazione delle dottrine tattiche e dell'affaticamento / infortuni
+ * - Integrazione dei moduli tattici, delle dottrine e dell'affaticamento / infortuni
  */
 export function simulateMatch(input: MatchSimulationInput): MatchResult {
   const { homeClub, awayClub, allPlayers } = input;
 
-  // Selezione dei 12 atleti titolari (Duodecim Primarii)
+  // Selezione dei 12 atleti titolari (Duodecim Primarii): rispetta la Tabula Cerata (titolariIds) e completa con i migliori disponibili
   const getLineup = (club: Club) => {
-    const list = Object.values(allPlayers).filter(p => p.clubId === club.id && !p.infortunato && !p.squalificato);
-    list.sort((a, b) => b.valoreGenerale - a.valoreGenerale);
-    return list.slice(0, 12);
+    const eligible = Object.values(allPlayers).filter(
+      p => p.clubId === club.id && !p.infortunato && !p.squalificato
+    );
+    const eligibleMap = new Map(eligible.map(p => [p.id, p]));
+    const selected: Player[] = [];
+    const selectedIds = new Set<string>();
+
+    for (const id of club.titolariIds || []) {
+      const player = eligibleMap.get(id);
+      if (player && !selectedIds.has(id)) {
+        selected.push(player);
+        selectedIds.add(id);
+        if (selected.length >= 12) break;
+      }
+    }
+
+    if (selected.length < 12) {
+      const remaining = eligible
+        .filter(p => !selectedIds.has(p.id))
+        .sort((a, b) => b.valoreGenerale - a.valoreGenerale);
+      for (const p of remaining) {
+        selected.push(p);
+        if (selected.length >= 12) break;
+      }
+    }
+
+    return selected;
   };
 
   const homeLineup = getLineup(homeClub);
   const awayLineup = getLineup(awayClub);
 
-  // Calcolo della potenza atletica e fisica delle due formazioni
+  // Calcolo della potenza atletica e fisica delle due formazioni (incluso bonus arena e modulo tattico)
   const computeHarpastumPower = (club: Club, lineup: Player[], isHome: boolean) => {
     const homeArenaBonus = isHome ? 1.08 : 1.0;
+    const formMods = getFormationModifiers(club.formazioneTattica);
+
     if (lineup.length === 0) {
       const rep = Math.max(45, Math.min(95, Math.round(club.reputazione / 10.5)));
       return {
-        praevenientes: rep * homeArenaBonus, // Scatto e affondo in meta
-        tractores: rep * homeArenaBonus,     // Circolazione della piccola palla
-        luctatores: rep * homeArenaBonus,    // Placcaggi, forza e mischia
-        custos: rep * homeArenaBonus         // Difesa dell'ultima linea
+        praevenientes: rep * homeArenaBonus * formMods.praevenientes,
+        tractores: rep * homeArenaBonus * formMods.tractores,
+        luctatores: rep * homeArenaBonus * formMods.luctatores,
+        custos: rep * homeArenaBonus * formMods.custos
       };
     }
 
@@ -51,7 +148,7 @@ export function simulateMatch(input: MatchSimulationInput): MatchResult {
     lineup.forEach(p => {
       const condition = p.condizione / 100;
       const morale = p.morale / 100;
-      const effective = p.valoreGenerale * (0.8 + 0.1 * condition + 0.1 * morale);
+      const formFactor = 0.8 + 0.1 * condition + 0.1 * morale;
       const cat = getHarpastumCategory(p);
 
       // Modificatori da dottrina tattica specifica Harpastum
@@ -68,25 +165,25 @@ export function simulateMatch(input: MatchSimulationInput): MatchResult {
       }
 
       if (cat === 'CUSTOS') {
-        custosSum += (p.attributi.riflessi * 2 + p.attributi.forza + p.attributi.elevazione) * 1.6 + dutyDefBonus;
+        custosSum += ((p.attributi.riflessi * 2 + p.attributi.forza + p.attributi.elevazione) * 1.6 * formFactor) + dutyDefBonus;
       } else if (cat === 'PRAEVENIENS') {
-        praevSum += (p.attributi.velocita * 1.5 + p.attributi.finalizzazione * 1.5 + p.attributi.dribbling) * 1.3 + dutyMetaBonus;
+        praevSum += ((p.attributi.velocita * 1.5 + p.attributi.finalizzazione * 1.5 + p.attributi.dribbling) * 1.3 * formFactor) + dutyMetaBonus;
         praevCount++;
       } else if (cat === 'TRACTOR') {
-        tracSum += (p.attributi.passaggio * 1.5 + p.attributi.visione * 1.5 + p.attributi.resistenza) * 1.3 + dutyIntercettoBonus;
+        tracSum += ((p.attributi.passaggio * 1.5 + p.attributi.visione * 1.5 + p.attributi.resistenza) * 1.3 * formFactor) + dutyIntercettoBonus;
         tracCount++;
       } else {
         // LUCTATOR
-        luctSum += (p.attributi.contrasto * 1.5 + p.attributi.forza * 1.5 + p.attributi.marcatura) * 1.3 + dutyPlaccaggiBonus;
+        luctSum += ((p.attributi.contrasto * 1.5 + p.attributi.forza * 1.5 + p.attributi.marcatura) * 1.3 * formFactor) + dutyPlaccaggiBonus;
         luctCount++;
       }
     });
 
     return {
-      praevenientes: (praevCount > 0 ? praevSum / praevCount : 50) * homeArenaBonus,
-      tractores: (tracCount > 0 ? tracSum / tracCount : 50) * homeArenaBonus,
-      luctatores: (luctCount > 0 ? luctSum / luctCount : 50) * homeArenaBonus,
-      custos: (custosSum > 0 ? custosSum : 50) * homeArenaBonus
+      praevenientes: (praevCount > 0 ? praevSum / praevCount : 50) * homeArenaBonus * formMods.praevenientes,
+      tractores: (tracCount > 0 ? tracSum / tracCount : 50) * homeArenaBonus * formMods.tractores,
+      luctatores: (luctCount > 0 ? luctSum / luctCount : 50) * homeArenaBonus * formMods.luctatores,
+      custos: (custosSum > 0 ? custosSum : 50) * homeArenaBonus * formMods.custos
     };
   };
 

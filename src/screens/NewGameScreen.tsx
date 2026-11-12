@@ -140,8 +140,9 @@ const MACRO_AREAS = [
   'Occidente Romano',
   'Europa Continentale & Celtica',
   'Mediterraneo Orientale & Grecia',
-  'Asia & Vicino Oriente',
-  'Nord Africa & Nilo'
+  'Oriente & Asia Anteriore',
+  'Nord Africa & Nilo',
+  'Terre Lontane & Confini'
 ];
 
 type WizardStep = 1 | 2 | 3 | 4;
@@ -260,12 +261,12 @@ export const NewGameScreen: React.FC<NewGameScreenProps> = ({ onStartCareer, onB
   ];
 
   return (
-    <div className="min-h-screen bg-[#1c0406] p-3 sm:p-4 flex flex-col items-center justify-center select-none">
-      <div className="w-full max-w-5xl retro-box overflow-hidden shadow-2xl flex flex-col max-h-[96vh] border-2 border-[#85222b]">
+    <div className="h-dvh w-full bg-[#1c0406] p-2 sm:p-3 flex flex-col items-center justify-center overflow-hidden select-none">
+      <div className="w-full max-w-6xl h-full max-h-[95dvh] retro-box overflow-hidden shadow-2xl flex flex-col border-2 border-[#85222b]">
         {/* Header Bar */}
-        <div className="retro-panel-header px-4 py-3 flex items-center justify-between border-b border-[#731922]">
+        <div className="retro-panel-header px-4 py-2 flex items-center justify-between border-b border-[#731922] shrink-0">
           <div className="flex items-center gap-2">
-            <Shield size={18} className="text-[#d4af37]" />
+            <Shield size={17} className="text-[#d4af37]" />
             <div>
               <h1 className="font-roman text-sm font-bold tracking-wider text-[#d4af37]">
                 NUOVA CARRIERA · ATTO D'INGAGGIO DEL MAGISTER
@@ -279,7 +280,7 @@ export const NewGameScreen: React.FC<NewGameScreenProps> = ({ onStartCareer, onB
             variant="secondary"
             size="sm"
             onClick={currentStep === 1 ? onBack : () => setCurrentStep((s: WizardStep) => (Math.max(1, s - 1) as WizardStep))}
-            className="flex items-center gap-1 cursor-pointer"
+            className="flex items-center gap-1 cursor-pointer whitespace-nowrap"
           >
             <ArrowLeft size={14} />
             <span>{currentStep === 1 ? 'Annulla' : 'Passo Precedente'}</span>
@@ -287,7 +288,7 @@ export const NewGameScreen: React.FC<NewGameScreenProps> = ({ onStartCareer, onB
         </div>
 
         {/* Multi-Step Wizard Progress Ribbon */}
-        <div className="grid grid-cols-4 bg-[#140203] border-b border-[#521016] text-xs font-roman">
+        <div className="grid grid-cols-4 bg-[#140203] border-b border-[#521016] text-xs font-roman shrink-0">
           {stepTitles.map(st => {
             const isActive = currentStep === st.step;
             const isCompleted = currentStep > st.step;
@@ -297,7 +298,7 @@ export const NewGameScreen: React.FC<NewGameScreenProps> = ({ onStartCareer, onB
                 onClick={() => {
                   if (st.step < currentStep) setCurrentStep(st.step as WizardStep);
                 }}
-                className={`p-2.5 flex items-center gap-2 border-r border-[#521016] transition-colors cursor-pointer ${
+                className={`p-2 flex items-center gap-2 border-r border-[#521016] transition-colors cursor-pointer ${
                   isActive
                     ? 'bg-[#800020] text-[#d4af37] border-b-2 border-b-[#d4af37]'
                     : isCompleted
@@ -306,7 +307,7 @@ export const NewGameScreen: React.FC<NewGameScreenProps> = ({ onStartCareer, onB
                 }`}
               >
                 <div
-                  className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
+                  className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${
                     isActive
                       ? 'bg-[#d4af37] text-[#1c0406]'
                       : isCompleted
@@ -316,7 +317,7 @@ export const NewGameScreen: React.FC<NewGameScreenProps> = ({ onStartCareer, onB
                 >
                   {isCompleted ? '✓' : st.step}
                 </div>
-                <div className="hidden sm:block">
+                <div className="hidden sm:block min-w-0">
                   <div className="font-bold text-[11px] leading-tight truncate">{st.title}</div>
                   <div className="text-[9px] text-[#94a3b8] truncate">{st.subtitle}</div>
                 </div>
@@ -326,7 +327,7 @@ export const NewGameScreen: React.FC<NewGameScreenProps> = ({ onStartCareer, onB
         </div>
 
         {/* Multi-Step Content Body */}
-        <div className="p-4 overflow-y-auto space-y-4 text-xs flex-1 bg-[#1a0406]">
+        <div className="p-3 overflow-y-auto space-y-3 text-xs flex-1 min-h-0 bg-[#1a0406]">
           {/* ========================================================================= */}
           {/* PASSO 1: PROFILO & ORIGINE DEL MAGISTER                                   */}
           {/* ========================================================================= */}
@@ -795,7 +796,7 @@ export const NewGameScreen: React.FC<NewGameScreenProps> = ({ onStartCareer, onB
         </div>
 
         {/* Wizard Footer Navigation */}
-        <div className="retro-panel-header px-4 py-3 flex items-center justify-between border-t border-[#731922]">
+        <div className="retro-panel-header px-4 py-2 flex items-center justify-between border-t border-[#731922] shrink-0">
           <div className="text-[11px] text-[#94a3b8] font-roman hidden sm:block">
             Passo {currentStep} di 4 · {stepTitles[currentStep - 1].title}
           </div>
